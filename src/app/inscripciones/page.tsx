@@ -50,8 +50,9 @@ export default function InscripcionesPage() {
       try {
         setLoading(true);
         const data = await getAvailableCoursesByUserId();
-        setAvailableCourses(data || []);
-        setFilteredCourses(data || []);
+        setAvailableCourses((data as any[]) || []);
+        setFilteredCourses((data as any[]) || []);
+
       } catch (err) {
         console.error("❌ Error al traer datos del curso:", err);
       } finally {
