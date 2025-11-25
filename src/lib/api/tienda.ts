@@ -5,7 +5,7 @@ import { apiFetch } from "./client";
 import { Saldo, Compra, CardDetails } from "./types";
 
 // Este es el ID de tu usuario de la NOTEBOOK
-const userId = "09109e49-e243-4db8-b3b8-291e1f997bda";
+const userId = "3e7df85d-2eac-4c1d-aa7f-87e1ec2b11e6";
 
 // Interfaz de lo que la API envía
 interface ApiSaldoResponse {

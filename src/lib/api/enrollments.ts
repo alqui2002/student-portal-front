@@ -9,9 +9,9 @@ import {
 } from "./types";
 
 const STATIC_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhM2I1ZjZkNC05YzI4LTRiNDEtYmI5MC05ZDM2YTkyZjRiMTciLCJlbWFpbCI6ImdyZWdvcmlvY2FycmFuemFAaG90bWFpbC5jb20iLCJuYW1lIjoiR3JlZ29yaW8iLCJyb2xlIjoiQUxVTU5PIiwiY2FyZWVyIjp7InV1aWQiOiJlZGI1YTc1NC02NTE5LTQ4OTUtODQ2NC1iNzcwN2U3Nzc5NjMiLCJuYW1lIjoiTGljZW5jaWF0dXJhIGVuIFNpc3RlbWFzIGRlIEluZm9ybWFjacOzbiJ9LCJpYXQiOjE3NjM1ODkwMjAsImV4cCI6MTc2MzU5ODAyMH0.k6A0wlKVQTQhywjQCyYtyU6W5juXDbYKbBhje8cPx84";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhM2I1ZjZkNC05YzI4LTRiNDEtYmI5MC05ZDM2YTkyZjRiMTciLCJlbWFpbCI6ImdyZWdvcmlvY2FycmFuemFAaG90bWFpbC5jb20iLCJuYW1lIjoiR3JlZ29yaW8iLCJyb2xlIjoiQUxVTU5PIiwiY2FyZWVyIjp7InV1aWQiOiJlZGI1YTc1NC02NTE5LTQ4OTUtODQ2NC1iNzcwN2U3Nzc5NjMiLCJuYW1lIjoiTGljZW5jaWF0dXJhIGVuIFNpc3RlbWFzIGRlIEluZm9ybWFjacOzbiJ9LCJpYXQiOjE3NjQxMDI4MTEsImV4cCI6MTc2NDExMTgxMX0.KV-jIv22_DI91xc2PuAQB8_F9qyhGQooC7q_apKnjws";
 
-const userId = "09109e49-e243-4db8-b3b8-291e1f997bda";
+const userId = "3e7df85d-2eac-4c1d-aa7f-87e1ec2b11e6";
 
 export async function getEnrollmentsByUser() {
   return apiFetch(`/enrollments?userId=${userId}`);
@@ -51,7 +51,9 @@ export async function deleteEnrollmentById(
   });
 }
 
-export async function getAvailableCoursesByUserId(): Promise<AvailableCourse[]> {
+export async function getAvailableCoursesByUserId(): Promise<
+  AvailableCourse[]
+> {
   return apiFetch<AvailableCourse[]>(
     `/courses?status=available&userId=${userId}`
   );
