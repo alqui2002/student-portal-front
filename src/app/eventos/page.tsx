@@ -132,7 +132,7 @@ export default function EventosPage() {
         setLoading(true);
         const data = await getEventsByUser();
 
-        const fixed = data.map((item: any) => ({
+        const fixed = (data as any[]).map((item: any) => ({
           id: item.id,
           title: item.title,
           description: item.description,
