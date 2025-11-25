@@ -42,17 +42,24 @@ import {
   deleteEnrollmentById,
   getCoursesGradesByCommissionID,
 } from "@/lib/api/enrollments";
+import {
+  AttendanceRecord,
+  CourseGrades,
+  EnrollmentDetails,
+} from "@/lib/api/types";
 
 export default function CursoDetallePage() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
 
   const courseId = params.id;
   const commissionId = searchParams.get("commissionId");
 
-  const [courseDetails, setCourseDetails] = useState<any>(null);
-  const [attendances, setAttendances] = useState<any[]>([]);
-  const [grades, setGrades] = useState<any[]>([]);
+  const [courseDetails, setCourseDetails] = useState<EnrollmentDetails | null>(
+    null
+  );
+  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
+  const [grades, setGrades] = useState<CourseGrades | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -88,6 +95,9 @@ export default function CursoDetallePage() {
 
   async function handleCourseDelete() {
     try {
+      if (!commissionId) {
+        return;
+      }
       await deleteEnrollmentById(courseId, commissionId);
 
       setPopUpBaja(false);
@@ -114,6 +124,10 @@ export default function CursoDetallePage() {
       </main>
     );
   }
+
+  const firstExamValue = grades?.firstExam;
+  const secondExamValue = grades?.secondExam;
+  const finalExamValue = grades?.finalExam;
 
   return (
     <main className="w-full flex flex-col gap-8 bg-white mb-5">
@@ -310,19 +324,19 @@ export default function CursoDetallePage() {
               <tr className="border-l border-r border-b">
                 <td className="p-2 pl-8">Primer Parcial</td>
 
-                <td className="p-2">{grades?.firstExam ?? "—"}</td>
+                <td className="p-2">{firstExamValue ?? "—"}</td>
                 <td className="p-2">
-                  {grades?.firstExam !== null &&
-                    grades?.firstExam !== undefined && (
+                  {firstExamValue !== null &&
+                    firstExamValue !== undefined && (
                       <Badge
                         variant="secondary"
                         className={`font-light ${
-                          grades.firstExam < 4
+                          firstExamValue < 4
                             ? "border border-red-500 text-red-700"
                             : ""
                         }`}
                       >
-                        {grades.firstExam >= 4 ? "Aprobado" : "Desaprobado"}
+                        {firstExamValue >= 4 ? "Aprobado" : "Desaprobado"}
                       </Badge>
                     )}
                 </td>
@@ -330,19 +344,19 @@ export default function CursoDetallePage() {
               <tr className="border-l border-r border-b">
                 <td className="p-2 pl-8">Segundo Parcial</td>
 
-                <td className="p-2">{grades?.secondExam ?? "—"}</td>
+                <td className="p-2">{secondExamValue ?? "—"}</td>
                 <td className="p-2">
-                  {grades?.secondExam !== null &&
-                    grades?.secondExam !== undefined && (
+                  {secondExamValue !== null &&
+                    secondExamValue !== undefined && (
                       <Badge
                         variant="secondary"
                         className={`font-light ${
-                          grades.secondExam < 4
+                          secondExamValue < 4
                             ? "border border-red-500 text-red-700"
                             : ""
                         }`}
                       >
-                        {grades.secondExam >= 4 ? "Aprobado" : "Desaprobado"}
+                        {secondExamValue >= 4 ? "Aprobado" : "Desaprobado"}
                       </Badge>
                     )}
                 </td>
@@ -350,19 +364,19 @@ export default function CursoDetallePage() {
               <tr className="border-l border-r border-b">
                 <td className="p-2 pl-8">Final</td>
 
-                <td className="p-2">{grades?.finalExam ?? "—"}</td>
+                <td className="p-2">{finalExamValue ?? "—"}</td>
                 <td className="p-2">
-                  {grades?.finalExam !== null &&
-                    grades?.finalExam !== undefined && (
+                  {finalExamValue !== null &&
+                    finalExamValue !== undefined && (
                       <Badge
                         variant="secondary"
                         className={`font-light ${
-                          grades.finalExam < 4
+                          finalExamValue < 4
                             ? "border border-red-500 text-red-700"
                             : ""
                         }`}
                       >
-                        {grades.finalExam >= 4 ? "Aprobado" : "Desaprobado"}
+                        {finalExamValue >= 4 ? "Aprobado" : "Desaprobado"}
                       </Badge>
                     )}
                 </td>

@@ -5,17 +5,9 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getAllNotificationsByUser } from "@/lib/api/notifs";
+import type { NotificationData } from "@/lib/api/types";
 
-interface Notification {
-  id: string;
-  type: "exam" | "examen" | "sancion" | "evento";
-  title: string;
-  message?: string;
-  description?: string;
-  date?: string;
-  context?: string;
-  contextLink?: string;
-}
+type Notification = NotificationData;
 
 // 🏷️ Etiquetas según tipo
 const getBadgeProps = (type: Notification["type"]) => {
@@ -107,7 +99,7 @@ export default function NotificationList() {
       try {
         const data = await getAllNotificationsByUser();
         console.log("📬 Notificaciones desde backend:", data);
-        setNotifications(data || []);
+        setNotifications(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("❌ Error al traer notificaciones:", err);
       }

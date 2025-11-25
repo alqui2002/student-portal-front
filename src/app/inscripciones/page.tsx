@@ -31,6 +31,7 @@ import {
   getAvailableCoursesByUserId,
   enrollUserInCourseIdAndCommissionId,
 } from "@/lib/api/enrollments";
+import { AvailableCourse } from "@/lib/api/types";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Loader from "@/components/ui/loader";
 
@@ -38,21 +39,25 @@ export default function InscripcionesPage() {
   const [selectedCommissions, setSelectedCommissions] = useState<
     Record<string, string>
   >({});
-  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<AvailableCourse[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [insConfirmada, setinsConfirmada] = useState(false);
   const [selectedCourseFilter, setSelectedCourseFilter] =
     useState<string>("todas");
-  const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<AvailableCourse[]>(
+    []
+  );
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
         const data = await getAvailableCoursesByUserId();
-        setAvailableCourses((data as any[]) || []);
-        setFilteredCourses((data as any[]) || []);
-
+        const normalizedCourses = Array.isArray(data) ? data : [];
+        setAvailableCourses(normalizedCourses);
+        setFilteredCourses(normalizedCourses);
       } catch (err) {
         console.error("❌ Error al traer datos del curso:", err);
       } finally {
@@ -105,9 +110,11 @@ export default function InscripcionesPage() {
       }
       fetchData();
       setinsConfirmada(true);
-    } catch (err: any) {
-      console.error("❌ Error al inscribirse:", err.message);
-      alert(`Error: ${err.message}`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error desconocido al inscribirse";
+      console.error("❌ Error al inscribirse:", err);
+      alert(`Error: ${message}`);
     }
   };
 
@@ -219,12 +226,11 @@ export default function InscripcionesPage() {
             </div>
 
             {filteredCourses.map(curso => {
-              const commissions = Array.isArray(curso.commissions)
-                ? curso.commissions
-                : [];
+              const commissions = curso.commissions ?? [];
               const hasOpenCommission = commissions.some(
-                (com: any) => Number(com.availableSpots) > 0
+                com => com.availableSpots > 0
               );
+              const courseKey = String(curso.id);
 
               return (
                 <div
@@ -252,15 +258,16 @@ export default function InscripcionesPage() {
                   {commissions.length > 0 && (
                     <div className="items-center gap-4 ml-6 mr-6 p-4 pl-8 mb-5">
                       <RadioGroup
-                        value={selectedCommissions[curso.id] || ""}
+                        value={selectedCommissions[courseKey] || ""}
                         onValueChange={val =>
-                          handleCursoClick(curso.id.toString(), val)
+                          handleCursoClick(courseKey, val)
                         }
                       >
-                        {commissions.map((com: any) => {
-                          const isFull = Number(com.availableSpots) === 0;
+                        {commissions.map(com => {
+                          const isFull = com.availableSpots === 0;
+                          const commissionId = String(com.id);
                           const isSelected =
-                            selectedCommissions[curso.id] === com.id.toString();
+                            selectedCommissions[courseKey] === commissionId;
 
                           return (
                             <div
@@ -268,10 +275,7 @@ export default function InscripcionesPage() {
                               onClick={e => {
                                 if (isFull) return;
                                 e.stopPropagation();
-                                handleCursoClick(
-                                  curso.id.toString(),
-                                  com.id.toString()
-                                );
+                                handleCursoClick(courseKey, commissionId);
                               }}
                               className={`border rounded-xl pl-3 pr-3 mb-2 ${
                                 isSelected ? "border-[#6F97F0]" : ""
@@ -279,7 +283,7 @@ export default function InscripcionesPage() {
                             >
                               <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 p-2 pl-4">
                                 <RadioGroupItem
-                                  value={com.id.toString()}
+                                  value={commissionId}
                                   disabled={isFull}
                                   className="mt-1"
                                 />
