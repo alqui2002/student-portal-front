@@ -8,9 +8,6 @@ import {
   EnrollmentDetails,
 } from "./types";
 
-const STATIC_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhM2I1ZjZkNC05YzI4LTRiNDEtYmI5MC05ZDM2YTkyZjRiMTciLCJlbWFpbCI6ImdyZWdvcmlvY2FycmFuemFAaG90bWFpbC5jb20iLCJuYW1lIjoiR3JlZ29yaW8iLCJyb2xlIjoiQUxVTU5PIiwiY2FyZWVyIjp7InV1aWQiOiJlZGI1YTc1NC02NTE5LTQ4OTUtODQ2NC1iNzcwN2U3Nzc5NjMiLCJuYW1lIjoiTGljZW5jaWF0dXJhIGVuIFNpc3RlbWFzIGRlIEluZm9ybWFjacOzbiJ9LCJpYXQiOjE3NjQxMDI4MTEsImV4cCI6MTc2NDExMTgxMX0.KV-jIv22_DI91xc2PuAQB8_F9qyhGQooC7q_apKnjws";
-
 const userId = "3e7df85d-2eac-4c1d-aa7f-87e1ec2b11e6";
 
 export async function getEnrollmentsByUser() {
@@ -24,17 +21,13 @@ export async function getAcademicHistoryByUser() {
 export async function getEnrollmentDetailsByid(
   comissionid: string
 ): Promise<EnrollmentDetails> {
-  return apiFetch<EnrollmentDetails>(
-    `/enrollments/${comissionid}?userId=${userId}`
-  );
+  return apiFetch(`/enrollments/${comissionid}?userId=${userId}`);
 }
 
 export async function getAtendencessByUserID(
   comissionid: string
 ): Promise<AttendanceRecord[]> {
-  return apiFetch<AttendanceRecord[]>(
-    `/commissions/${comissionid}/attendances/${userId}/`
-  );
+  return apiFetch(`/commissions/${comissionid}/attendances/${userId}/`);
 }
 
 export async function deleteEnrollmentById(
@@ -54,17 +47,13 @@ export async function deleteEnrollmentById(
 export async function getAvailableCoursesByUserId(): Promise<
   AvailableCourse[]
 > {
-  return apiFetch<AvailableCourse[]>(
-    `/courses?status=available&userId=${userId}`
-  );
+  return apiFetch(`/courses?status=available&userId=${userId}`);
 }
 
 export async function getCoursesGradesByCommissionID(
   commissionId: string
 ): Promise<CourseGrades | null> {
-  return apiFetch<CourseGrades | null>(
-    `/grades/user/${userId}/commission/${commissionId}`
-  );
+  return apiFetch(`/grades/user/${userId}/commission/${commissionId}`);
 }
 
 export async function enrollUserInCourseIdAndCommissionId(
