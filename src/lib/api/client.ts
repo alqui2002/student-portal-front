@@ -1,9 +1,9 @@
-// src/lib/api/client.ts
-
 const API_URL = "https://student-portal-api-production.up.railway.app";
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
-  // Leer token desde cookie accesible
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const token = getJwtFromBrowser();
 
   const headers = {
@@ -23,10 +23,9 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     throw new Error("API Error");
   }
 
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
-// 🔥 función auxiliar para leer JWT desde cookie normal
 function getJwtFromBrowser() {
   if (typeof document === "undefined") return null;
 
