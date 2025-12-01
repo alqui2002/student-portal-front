@@ -9,6 +9,7 @@ import {
 } from "./types";
 
 const userId = "3e7df85d-2eac-4c1d-aa7f-87e1ec2b11e6";
+const token = getJwtFromCookie();
 
 export async function getEnrollmentsByUser() {
   return apiFetch(`/enrollments?userId=${userId}`);
@@ -38,7 +39,7 @@ export async function deleteEnrollmentById(
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${STATIC_TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ userId }),
   });
@@ -64,8 +65,14 @@ export async function enrollUserInCourseIdAndCommissionId(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${STATIC_TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ userId }),
   });
+}
+
+function getJwtFromCookie() {
+  if (typeof document === "undefined") return null; // SSR safe
+  const match = document.cookie.match(/JWT=([^;]+)/);
+  return match ? match[1] : null;
 }
