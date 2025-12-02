@@ -38,14 +38,12 @@ const isActive = (pathname: string, href: string) =>
 export function AppSidebar() {
   const pathname = usePathname();
 
-  // 🔔 Simulación de notificaciones no leídas
   const unreadCount = 3;
   const notificationsHref = "/notificaciones";
   const isNotificationsActive = isActive(pathname, notificationsHref);
 
   return (
     <Sidebar className="bg-[#FAFAFA]">
-      {/* Header con logo */}
       <SidebarHeader>
         <div className="flex items-center gap-7 px-3 mb-2 h-[53px]">
           <Image src="/logoUADE.png" alt="Logo" width={80} height={80} />
@@ -55,7 +53,6 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Contenido principal */}
       <SidebarContent className="border-t">
         <SidebarGroup>
           <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
@@ -76,7 +73,6 @@ export function AppSidebar() {
                 </CollapsibleTrigger>
               </SidebarMenuItem>
 
-              {/* Submenú del portal estudiante */}
               <CollapsibleContent className="font-normal px-3">
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
@@ -118,7 +114,6 @@ export function AppSidebar() {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Otras secciones */}
             {[
               { icon: BookOpen, label: "Biblioteca" },
               { icon: Coffee, label: "Comedor" },
@@ -145,7 +140,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer con usuario y notificaciones */}
       <SidebarFooter className="flex flex-row justify-between items-center p-4 border-t">
         <div className="flex items-center gap-3">
           <Avatar className="w-8 h-8">
@@ -159,7 +153,6 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* Campanita funcional con indicador */}
         <Link
           href={notificationsHref}
           className={`relative p-1.5 rounded-full transition-colors flex items-center justify-center

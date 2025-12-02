@@ -72,7 +72,7 @@ export async function enrollUserInCourseIdAndCommissionId(
 }
 
 function getJwtFromCookie() {
-  if (typeof document === "undefined") return null; // SSR safe
+  if (typeof document === "undefined") return null;
   const match = document.cookie.match(/JWT=([^;]+)/);
   return match ? match[1] : null;
 }

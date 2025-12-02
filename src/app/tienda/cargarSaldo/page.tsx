@@ -1,11 +1,10 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PanelLeft, WalletMinimal, X } from "lucide-react";
 
-// CAMBIO: Importamos CardDetails desde types.ts
-import { getSaldo, cargarSaldo } from "@/lib/api/tienda";
-import { CardDetails } from "@/lib/api/types";
+import { getBalance, loadBalance, CardDetails } from "@/lib/api/tienda";
 
 import {
   Breadcrumb,
@@ -29,31 +28,27 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// Definimos un tipo para nuestro objeto de errores
 type FormErrors = {
   cardNumber?: string;
   expiration?: string;
   cvv?: string;
   amount?: string;
+  general?: string;
 };
 
-export default function CargaSaldoPage() {
-  const [selectedAmount, setSelectedAmount] = React.useState<number | null>(
-    null
-  );
-  const [saldoConfirmado, setSaldoConfirmado] = useState(false);
-  const [saldoActual, setSaldoActual] = useState<number | null>(null);
-  const [montoManual, setMontoManual] = useState<string>("");
+export default function LoadBalancePage() {
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [isBalanceConfirmed, setIsBalanceConfirmed] = useState(false);
+  const [currentBalance, setCurrentBalance] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Estados para los campos de la tarjeta
   const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState(""); // Estado para el nombre
+  const [cardName, setCardName] = useState("");
   const [expiration, setExpiration] = useState("");
   const [cvv, setCvv] = useState("");
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -66,39 +61,38 @@ export default function CargaSaldoPage() {
   };
 
   useEffect(() => {
-    const fetchSaldo = async () => {
+    const fetchBalance = async () => {
       setIsLoading(true);
       try {
-        const data = await getSaldo();
-        setSaldoActual(data.balance);
+        const data = await getBalance();
+        setCurrentBalance(data.balance);
       } catch (error: any) {
-        console.error("No se pudo obtener el saldo:", error.message);
-        setSaldoActual(0);
+        console.error("Could not fetch balance:", error.message);
+        setCurrentBalance(0);
       }
       setIsLoading(false);
     };
 
-    fetchSaldo();
+    fetchBalance();
   }, []);
 
-  const handleMontoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMontoManual(e.target.value);
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomAmount(e.target.value);
     setSelectedAmount(null);
     if (errors.amount) setErrors(prev => ({ ...prev, amount: undefined }));
-    setApiError(null);
+    if (errors.general) setErrors(prev => ({ ...prev, general: undefined }));
   };
 
-  const handleSelectMonto = (amount: number) => {
+  const handleSelectAmount = (amount: number) => {
     setSelectedAmount(amount);
-    setMontoManual(String(amount));
+    setCustomAmount(String(amount));
     if (errors.amount) setErrors(prev => ({ ...prev, amount: undefined }));
-    setApiError(null);
+    if (errors.general) setErrors(prev => ({ ...prev, general: undefined }));
   };
 
-  // Validación de formulario avanzada
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    const amountAsNumber = parseFloat(montoManual);
+    const amountAsNumber = parseFloat(customAmount);
 
     if (isNaN(amountAsNumber) || amountAsNumber <= 0) {
       newErrors.amount = "El monto a cargar debe ser mayor a 0.";
@@ -117,14 +111,15 @@ export default function CargaSaldoPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleCargarSaldo = async () => {
-    setApiError(null);
+  const handleLoadBalance = async () => {
+    setErrors(prev => ({ ...prev, general: undefined }));
+
     if (!validateForm()) {
       return;
     }
 
-    const amountAsNumber = parseFloat(montoManual);
-    // Creamos el DTO (cardName no se envía, pero lo validamos)
+    const amountAsNumber = parseFloat(customAmount);
+
     const depositData: CardDetails = {
       cardNumber,
       expiration,
@@ -133,11 +128,11 @@ export default function CargaSaldoPage() {
     };
 
     try {
-      await cargarSaldo(depositData);
-      setSaldoConfirmado(true);
-      setSaldoActual(prevSaldo => (prevSaldo || 0) + amountAsNumber);
+      await loadBalance(depositData);
+      setIsBalanceConfirmed(true);
+      setCurrentBalance(prev => (prev || 0) + amountAsNumber);
 
-      setMontoManual("");
+      setCustomAmount("");
       setCardNumber("");
       setCardName("");
       setExpiration("");
@@ -145,14 +140,26 @@ export default function CargaSaldoPage() {
       setSelectedAmount(null);
       setErrors({});
     } catch (error: any) {
-      console.error("Error de red al cargar saldo:", error.message);
-      setApiError(`Error al cargar el saldo: ${error.message}`);
+      console.error("Network error loading balance:", error.message);
+
+      let errorMessage = "Error al cargar el saldo. Intente de nuevo.";
+      try {
+        const errorObj = JSON.parse(error.message);
+        if (errorObj.message && Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message.join(", ");
+        } else if (errorObj.message) {
+          errorMessage = errorObj.message;
+        }
+      } catch (e) {
+        errorMessage = error.message || "Unknown error";
+      }
+
+      setErrors(prev => ({ ...prev, general: errorMessage }));
     }
   };
 
   return (
     <main className="w-full flex flex-col gap-8 bg-white">
-      {/* ... (Header sin cambios) ... */}
       <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px]">
         <PanelLeft size={15} />
         <span className="text-muted-foreground">|</span>
@@ -174,12 +181,13 @@ export default function CargaSaldoPage() {
       </div>
 
       <div>
-        {/* ... (Saldo Actual sin cambios) ... */}
         <div className="border rounded-xl flex flex-row justify-between m-8 mt-4 p-5 pl-6 pt-8 pr-10">
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl font-bold">Saldo Actual</h2>
             <h3 className="text-xl text-[#404040] font-bold">
-              {isLoading ? "Cargando..." : formatCurrency(saldoActual ?? 0.0)}
+              {isLoading
+                ? "Cargando..."
+                : formatCurrency(currentBalance ?? 0.0)}
             </h3>
           </div>
           <div className="bg-[#D9D9D9] rounded-full p-3 fit-content h-12">
@@ -187,7 +195,6 @@ export default function CargaSaldoPage() {
           </div>
         </div>
 
-        {/* Formulario de Carga */}
         <div className="border rounded-xl m-8 mt-4 pt-8 ">
           <div className="pb-3 border-b">
             <h4 className="text-base font-bold pl-6 pb-5 ">
@@ -195,8 +202,7 @@ export default function CargaSaldoPage() {
             </h4>
           </div>
           <div className=" border-b">
-            <div className="grid grid-cols-2  pt-8 ml-6 pb-8 gap-x-8 gap-y-3 mr-8">
-              {/* --- Campo Número de Tarjeta --- */}
+            <div className="grid grid-cols-2 pt-8 ml-6 pb-8 gap-x-8 gap-y-3 mr-8">
               <div className="space-y-1">
                 <span className="font-light text-sm">Número de la tarjeta</span>
                 <Input
@@ -206,7 +212,6 @@ export default function CargaSaldoPage() {
                     setCardNumber(e.target.value);
                     if (errors.cardNumber)
                       setErrors(prev => ({ ...prev, cardNumber: undefined }));
-                    setApiError(null);
                   }}
                   className={cn(errors.cardNumber && "border-red-500")}
                 />
@@ -215,7 +220,6 @@ export default function CargaSaldoPage() {
                 )}
               </div>
 
-              {/* --- Campo Nombre y Apellido --- */}
               <div className="space-y-1">
                 <span className="font-light text-sm">
                   Nombre y apellido que aparece en la tarjeta
@@ -227,7 +231,6 @@ export default function CargaSaldoPage() {
                 />
               </div>
 
-              {/* --- Campo Fecha de Vencimiento --- */}
               <div className="space-y-1 pt-4">
                 <span className="font-light text-sm">Fecha de Vencimiento</span>
                 <Input
@@ -237,7 +240,6 @@ export default function CargaSaldoPage() {
                     setExpiration(e.target.value);
                     if (errors.expiration)
                       setErrors(prev => ({ ...prev, expiration: undefined }));
-                    setApiError(null);
                   }}
                   className={cn(errors.expiration && "border-red-500")}
                 />
@@ -246,7 +248,6 @@ export default function CargaSaldoPage() {
                 )}
               </div>
 
-              {/* --- Campo CVV --- */}
               <div className="space-y-1 pt-4">
                 <span className="font-light text-sm">CVV</span>
                 <Input
@@ -256,7 +257,6 @@ export default function CargaSaldoPage() {
                     setCvv(e.target.value);
                     if (errors.cvv)
                       setErrors(prev => ({ ...prev, cvv: undefined }));
-                    setApiError(null);
                   }}
                   className={cn(errors.cvv && "border-red-500")}
                 />
@@ -267,7 +267,6 @@ export default function CargaSaldoPage() {
             </div>
           </div>
 
-          {/* ... (Sección de Monto sin cambios) ... */}
           <div className="p-6">
             <h3 className="font-light">Monto a cargar</h3>
             <div
@@ -282,8 +281,8 @@ export default function CargaSaldoPage() {
                 inputMode="decimal"
                 placeholder="0.00"
                 className="bg-transparent outline-none flex-1 text-black placeholder:text-muted-foreground"
-                value={montoManual}
-                onChange={handleMontoChange}
+                value={customAmount}
+                onChange={handleAmountChange}
               />
             </div>
             {errors.amount && (
@@ -291,73 +290,46 @@ export default function CargaSaldoPage() {
             )}
           </div>
 
-          {/* ... (Botones de monto sin cambios) ... */}
           <div className="grid grid-cols-4 gap-4 justify-between pl-5 pr-5">
-            <div className="w-[100%] justify-between">
-              <Button
-                onClick={() => handleSelectMonto(5000)}
-                className={`w-full border border-gray text-black ${
-                  selectedAmount === 5000 ? "bg-gray-200" : "bg-white"
-                } hover:bg-gray-100 cursor-pointer`}
-              >
-                $5.000
-              </Button>
-            </div>
-            <div className="w-[100%] justify-between">
-              <Button
-                onClick={() => handleSelectMonto(7000)}
-                className={`w-full border border-gray text-black ${
-                  selectedAmount === 7000 ? "bg-gray-200" : "bg-white"
-                } hover:bg-gray-100 cursor-pointer`}
-              >
-                $7.000
-              </Button>
-            </div>{" "}
-            <div className="w-[100%] justify-between">
-              <Button
-                onClick={() => handleSelectMonto(10000)}
-                className={`w-full border border-gray text-black ${
-                  selectedAmount === 10000 ? "bg-gray-200" : "bg-white"
-                } hover:bg-gray-100 cursor-pointer`}
-              >
-                $10.000
-              </Button>
-            </div>{" "}
-            <div className="w-[100%] justify-between">
-              <Button
-                onClick={() => handleSelectMonto(20000)}
-                className={`w-full border border-gray text-black ${
-                  selectedAmount === 20000 ? "bg-gray-200" : "bg-white"
-                } hover:bg-gray-100 cursor-pointer`}
-              >
-                $20.000
-              </Button>
-            </div>
+            {[5000, 7000, 10000, 20000].map(amount => (
+              <div key={amount} className="w-[100%] justify-between">
+                <Button
+                  onClick={() => handleSelectAmount(amount)}
+                  className={`w-full border border-gray text-black ${
+                    selectedAmount === amount ? "bg-gray-200" : "bg-white"
+                  } hover:bg-gray-100 cursor-pointer`}
+                >
+                  ${amount.toLocaleString("es-AR")}
+                </Button>
+              </div>
+            ))}
           </div>
 
           <div className="p-5 slign-center justify-self-center align-content-center">
-            {apiError && (
+            {errors.general && (
               <p className="text-red-500 text-sm text-center mb-4">
-                {apiError}
+                {errors.general}
               </p>
             )}
             <Button
               className="w-[350px] cursor-pointer"
-              onClick={handleCargarSaldo}
+              onClick={handleLoadBalance}
             >
               Confirmar Saldo Tarjeta
             </Button>
           </div>
         </div>
 
-        {/* ... (Popup de confirmación sin cambios) ... */}
-        <AlertDialog open={saldoConfirmado} onOpenChange={setSaldoConfirmado}>
+        <AlertDialog
+          open={isBalanceConfirmed}
+          onOpenChange={setIsBalanceConfirmed}
+        >
           <AlertDialogContent className="text-center w-[500px]">
             <AlertDialogHeader>
               <div className="jutify-start">
                 <Link
                   href={"/tienda"}
-                  onClick={() => setSaldoConfirmado(false)}
+                  onClick={() => setIsBalanceConfirmed(false)}
                   className="justify-start"
                 >
                   <X color={"black"} className="justify-start">

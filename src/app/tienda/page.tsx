@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { PanelLeft, Plus, X } from "lucide-react";
 
-import { getSaldo, getHistorialCompras } from "@/lib/api/tienda";
+import { getBalance, getPurchaseHistory } from "@/lib/api/tienda";
 import { Saldo, Compra } from "@/lib/api/types";
 
 import {
@@ -22,30 +22,30 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 
-export default function TiendaPage() {
+export default function StorePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Compra | null>(null);
-  const [saldo, setSaldo] = useState<Saldo | null>(null);
-  const [historial, setHistorial] = useState<Compra[]>([]);
+  const [balance, setBalance] = useState<Saldo | null>(null);
+  const [purchaseHistory, setPurchaseHistory] = useState<Compra[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const saldoData = await getSaldo();
-        setSaldo(saldoData);
+        const balanceData = await getBalance();
+        setBalance(balanceData);
       } catch (error: any) {
-        console.error("No se encontró la cuenta de saldo", error.message);
-        setSaldo({ balance: 0 });
+        console.error("Balance account not found", error.message);
+        setBalance({ balance: 0 });
       }
 
       try {
-        const historialData = await getHistorialCompras();
-        setHistorial(historialData);
+        const historyData = await getPurchaseHistory();
+        setPurchaseHistory(historyData);
       } catch (error: any) {
-        console.error("No se encontró historial de compras", error.message);
-        setHistorial([]);
+        console.error("Purchase history not found", error.message);
+        setPurchaseHistory([]);
       }
       setIsLoading(false);
     };
@@ -75,8 +75,8 @@ export default function TiendaPage() {
     return `$${formattedAmount}`;
   };
 
-  const handlePurchaseClick = (compra: Compra) => {
-    setSelectedPurchase(compra);
+  const handlePurchaseClick = (purchase: Compra) => {
+    setSelectedPurchase(purchase);
     setIsModalOpen(true);
   };
 
@@ -92,7 +92,6 @@ export default function TiendaPage() {
 
   return (
     <main className="w-full flex flex-col bg-white">
-      {/* Header */}
       <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px] shrink-0 bg-white">
         <PanelLeft size={15} />
         <span className="text-muted-foreground">|</span>
@@ -105,9 +104,7 @@ export default function TiendaPage() {
         </Breadcrumb>
       </div>
 
-      {/* Contenido Principal de la Página */}
       <div className="p-8 flex-grow overflow-auto">
-        {/* Sección de Saldo Institucional */}
         <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Saldo institucional</h1>
@@ -124,7 +121,7 @@ export default function TiendaPage() {
               <>
                 <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
                   <span className="text-2xl font-bold text-gray-800">
-                    {formatCurrency(saldo?.balance ?? 0)}
+                    {formatCurrency(balance?.balance ?? 0)}
                   </span>
                   <span className="text-sm text-gray-500">
                     Saldo disponible
@@ -149,29 +146,28 @@ export default function TiendaPage() {
           </div>
         </section>
 
-        {/* Sección de Historial de Compras */}
         <section className="mt-8 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="text-2xl font-bold mb-6">Historial de compras</h2>
           <div className="space-y-4">
             {isLoading ? (
               <p>Cargando historial...</p>
-            ) : historial.length > 0 ? (
-              historial.map(compra => (
+            ) : purchaseHistory.length > 0 ? (
+              purchaseHistory.map(purchase => (
                 <div
-                  key={compra.id}
+                  key={purchase.id}
                   className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handlePurchaseClick(compra)}
+                  onClick={() => handlePurchaseClick(purchase)}
                 >
                   <div>
                     <p className="font-semibold text-gray-800 text-lg">
-                      {compra.product.description}
+                      {purchase.product.description}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {new Date(compra.date).toLocaleDateString("es-ES")}
+                      {new Date(purchase.date).toLocaleDateString("es-ES")}
                     </p>
                   </div>
                   <p className="font-semibold text-gray-900 text-lg">
-                    {formatHistoryAmount(compra.total)}
+                    {formatHistoryAmount(purchase.total)}
                   </p>
                 </div>
               ))
@@ -181,7 +177,6 @@ export default function TiendaPage() {
           </div>
         </section>
 
-        {/* Popup */}
         <AlertDialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <AlertDialogContent className="sm:max-w-md">
             <AlertDialogHeader>
@@ -206,7 +201,6 @@ export default function TiendaPage() {
                   {formatPopupDate(selectedPurchase?.date)}
                 </span>
               </div>
-              {/* CAMBIO: Lógica de Entidad Corregida */}
               <div className="text-base">
                 <span className="font-bold text-gray-900">Entidad: </span>
                 <span className="text-gray-600">

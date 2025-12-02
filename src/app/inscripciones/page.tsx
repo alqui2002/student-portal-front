@@ -46,9 +46,7 @@ export default function InscripcionesPage() {
   const [insConfirmada, setinsConfirmada] = useState(false);
   const [selectedCourseFilter, setSelectedCourseFilter] =
     useState<string>("todas");
-  const [filteredCourses, setFilteredCourses] = useState<AvailableCourse[]>(
-    []
-  );
+  const [filteredCourses, setFilteredCourses] = useState<AvailableCourse[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -142,7 +140,6 @@ export default function InscripcionesPage() {
         </Breadcrumb>
       </div>
 
-      {/* === Contenido === */}
       <div className="pl-8 pr-8">
         <h1 className="text-2xl font-medium pb-3">Inscripción Materias</h1>
         <span className="text-sm text-[#737373]">
@@ -150,7 +147,6 @@ export default function InscripcionesPage() {
         </span>
 
         <div className="grid grid-cols-3 gap-5 pt-5">
-          {/* === Filtros === */}
           <div>
             <div className="border rounded-xl p-4">
               <div className="flex flex-row gap-2 items-center p-2">
@@ -185,7 +181,6 @@ export default function InscripcionesPage() {
               </div>
             </div>
 
-            {/* === Resumen === */}
             <div className="border rounded-xl p-5 mt-5">
               <span className="font-bold">Resumen de inscripción</span>
               <div className="flex justify-between mt-6">
@@ -216,7 +211,6 @@ export default function InscripcionesPage() {
             </div>
           </div>
 
-          {/* === Cursos disponibles === */}
           <div className="border rounded-xl ml-4 col-span-2">
             <div className="p-8 pb-2 border-b">
               <h2 className="text-lg font-light">Materias Disponibles</h2>
@@ -259,9 +253,7 @@ export default function InscripcionesPage() {
                     <div className="items-center gap-4 ml-6 mr-6 p-4 pl-8 mb-5">
                       <RadioGroup
                         value={selectedCommissions[courseKey] || ""}
-                        onValueChange={val =>
-                          handleCursoClick(courseKey, val)
-                        }
+                        onValueChange={val => handleCursoClick(courseKey, val)}
                       >
                         {commissions.map(com => {
                           const isFull = com.availableSpots === 0;
@@ -316,7 +308,6 @@ export default function InscripcionesPage() {
           </div>
         </div>
 
-        {/* === Modal confirmación === */}
         <AlertDialog open={insConfirmada} onOpenChange={setinsConfirmada}>
           <AlertDialogContent className="text-center w-[500px]">
             <AlertDialogHeader>

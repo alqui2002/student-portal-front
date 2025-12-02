@@ -1,22 +1,21 @@
-// lib/api/tienda.ts
-
 import { apiFetch } from "./client";
-// CAMBIO: Importamos CardDetails desde types.ts
-import { Saldo, Compra, CardDetails } from "./types";
+import { Saldo, Compra } from "./types";
 
-// Este es el ID de tu usuario de la NOTEBOOK
 const userId = "3e7df85d-2eac-4c1d-aa7f-87e1ec2b11e6";
 
-// Interfaz de lo que la API envía
-interface ApiSaldoResponse {
-  balance: string; // La API envía el saldo como string
+interface ApiBalanceResponse {
+  balance: string;
 }
 
-/**
- * Obtiene el saldo actual del usuario.
- */
-export async function getSaldo(): Promise<Saldo> {
-  const apiData = await apiFetch<ApiSaldoResponse>(
+export interface CardDetails {
+  cardNumber: string;
+  expiration: string;
+  cvv: string;
+  amount: number;
+}
+
+export async function getBalance(): Promise<Saldo> {
+  const apiData = await apiFetch<ApiBalanceResponse>(
     `/account/${userId}/balance`
   );
   return {
@@ -24,23 +23,16 @@ export async function getSaldo(): Promise<Saldo> {
   };
 }
 
-/**
- * Obtiene el historial de compras del usuario.
- */
-export async function getHistorialCompras(): Promise<Compra[]> {
+export async function getPurchaseHistory(): Promise<Compra[]> {
   return apiFetch<Compra[]>(`/users/${userId}/purchases`);
 }
 
-/**
- * Realiza un depósito en la cuenta del usuario.
- */
-export async function cargarSaldo(depositData: CardDetails) {
-  // Creamos el DTO para la API
+export async function loadBalance(depositData: CardDetails) {
   const apiRequestBody = {
     cardNumber: depositData.cardNumber,
     expiration: depositData.expiration,
     cvv: depositData.cvv,
-    amount: String(depositData.amount), // Convertimos a string para la API
+    amount: String(depositData.amount),
   };
 
   return apiFetch<any>(`/account/${userId}/transactions`, {

@@ -131,7 +131,6 @@ export default function CursoDetallePage() {
 
   return (
     <main className="w-full flex flex-col gap-8 bg-white mb-5">
-      {/* Header y Breadcrumb */}
       <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center border-b h-[53px] text-sm text-muted-foreground">
         <PanelLeft size={15} />
         <span className="text-muted-foreground">|</span>
@@ -171,7 +170,6 @@ export default function CursoDetallePage() {
           </Badge>
         </div>
 
-        {/* Popups */}
         <AlertDialog open={popUpBaja} onOpenChange={setPopUpBaja}>
           <AlertDialogContent className="text-center w-[500px]">
             <AlertDialogHeader>
@@ -219,9 +217,7 @@ export default function CursoDetallePage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Información general + Asistencias */}
         <div className="flex flex-row pl-4 items-start gap-6">
-          {/* Información general */}
           <div className="border rounded-xl bg-white w-[370px] mr-8 flex flex-col">
             <div className="flex items-center p-4 pr-6 rounded-t-xl bg-[#6F97F0]">
               <FolderOpen size={18} />
@@ -259,7 +255,6 @@ export default function CursoDetallePage() {
             </div>
           </div>
 
-          {/* Resumen de Asistencias */}
           <div className="border rounded-xl bg-white w-[370px] flex flex-col">
             <div className="flex items-center p-4 pr-6 rounded-t-xl bg-[#6F97F0]">
               <UserCheck size={18} />
@@ -306,7 +301,6 @@ export default function CursoDetallePage() {
           </div>
         </div>
 
-        {/* 🧾 Clasificaciones */}
         <div className="overflow-auto pl-4 pt-12">
           <h1 className="text-xl font-medium pb-5">Calificaciones</h1>
 
@@ -326,19 +320,18 @@ export default function CursoDetallePage() {
 
                 <td className="p-2">{firstExamValue ?? "—"}</td>
                 <td className="p-2">
-                  {firstExamValue !== null &&
-                    firstExamValue !== undefined && (
-                      <Badge
-                        variant="secondary"
-                        className={`font-light ${
-                          firstExamValue < 4
-                            ? "border border-red-500 text-red-700"
-                            : ""
-                        }`}
-                      >
-                        {firstExamValue >= 4 ? "Aprobado" : "Desaprobado"}
-                      </Badge>
-                    )}
+                  {firstExamValue !== null && firstExamValue !== undefined && (
+                    <Badge
+                      variant="secondary"
+                      className={`font-light ${
+                        firstExamValue < 4
+                          ? "border border-red-500 text-red-700"
+                          : ""
+                      }`}
+                    >
+                      {firstExamValue >= 4 ? "Aprobado" : "Desaprobado"}
+                    </Badge>
+                  )}
                 </td>
               </tr>
               <tr className="border-l border-r border-b">
@@ -366,26 +359,24 @@ export default function CursoDetallePage() {
 
                 <td className="p-2">{finalExamValue ?? "—"}</td>
                 <td className="p-2">
-                  {finalExamValue !== null &&
-                    finalExamValue !== undefined && (
-                      <Badge
-                        variant="secondary"
-                        className={`font-light ${
-                          finalExamValue < 4
-                            ? "border border-red-500 text-red-700"
-                            : ""
-                        }`}
-                      >
-                        {finalExamValue >= 4 ? "Aprobado" : "Desaprobado"}
-                      </Badge>
-                    )}
+                  {finalExamValue !== null && finalExamValue !== undefined && (
+                    <Badge
+                      variant="secondary"
+                      className={`font-light ${
+                        finalExamValue < 4
+                          ? "border border-red-500 text-red-700"
+                          : ""
+                      }`}
+                    >
+                      {finalExamValue >= 4 ? "Aprobado" : "Desaprobado"}
+                    </Badge>
+                  )}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* 🗓️ Asistencias Detalladas */}
         <div className="overflow-auto pl-4 pt-12">
           <h1 className="text-xl font-medium pb-5">Asistencias</h1>
 

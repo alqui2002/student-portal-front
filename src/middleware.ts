@@ -6,11 +6,9 @@ export function middleware(req: NextRequest) {
   const url = req.nextUrl;
   const jwtFromUrl = url.searchParams.get("JWT");
 
-  // 1) Capturar JWT y guardarlo en cookie accesible por js
   if (jwtFromUrl) {
     const res = NextResponse.redirect(new URL(url.pathname, req.url));
 
-    // SIEMPRE cuando viene ?JWT=...
     res.cookies.set("JWT", jwtFromUrl, {
       httpOnly: false,
       secure: false,

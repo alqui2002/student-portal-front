@@ -9,7 +9,6 @@ import type { NotificationData } from "@/lib/api/types";
 
 type Notification = NotificationData;
 
-// 🏷️ Etiquetas según tipo
 const getBadgeProps = (type: Notification["type"]) => {
   switch (type) {
     case "exam":
@@ -24,7 +23,6 @@ const getBadgeProps = (type: Notification["type"]) => {
   }
 };
 
-// ⏱️ Tiempo relativo
 const timeAgo = (date?: string) => {
   if (!date) return "";
   const diff = new Date().getTime() - new Date(date).getTime();
@@ -33,13 +31,11 @@ const timeAgo = (date?: string) => {
   return `Hace ${hours} horas`;
 };
 
-// 🔔 Componente individual
 const NotificationItem: React.FC<{ notification: Notification }> = ({
   notification,
 }) => {
   const { text, class: badgeClass } = getBadgeProps(notification.type);
 
-  // 🔗 Rutas por tipo (por defecto)
   const linkMap: Record<string, string> = {
     exam: "/misCursos",
     examen: "/misCursos",
@@ -87,7 +83,6 @@ const NotificationItem: React.FC<{ notification: Notification }> = ({
   );
 };
 
-// 📋 Lista completa
 export default function NotificationList() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeTab, setActiveTab] = useState<

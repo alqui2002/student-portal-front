@@ -1,4 +1,3 @@
-// src/app/miscursos/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -104,7 +103,6 @@ export default function MisCursosPage() {
         </Breadcrumb>
       </div>
       <div className="pl-8 pr-8">
-        {/* Cursos actuales */}
         <section>
           <h1 className="text-2xl font-medium">Cursos Actuales</h1>
 
@@ -151,8 +149,6 @@ export default function MisCursosPage() {
           </div>
         </section>
 
-        {/* Historial académico */}
-        {/* Historial académico */}
         <section className="pt-9">
           <div className="flex flex-row justify-between items-center pb-6">
             <h1 className="text-2xl font-medium">Historial Académico</h1>
@@ -203,7 +199,6 @@ export default function MisCursosPage() {
             </Select>
           </div>
 
-          {/* Tabla */}
           <div className="overflow-auto pl-4">
             <table className="w-full border-collapse text-sm text-left rounded-md overflow-hidden pr-6">
               <thead className="bg-gray-100">
@@ -218,7 +213,6 @@ export default function MisCursosPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* ✅ Usa historialFiltrado para aplicar el filtro o mostrar todo */}
                 {historialFiltrado.map(enrollment => (
                   <tr
                     key={enrollment.id}

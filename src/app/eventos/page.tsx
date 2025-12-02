@@ -194,13 +194,11 @@ export default function EventosPage() {
           </Breadcrumb>
         </div>
 
-        {/* CONTENIDO */}
         <div className="mx-auto max-w-[1200px] px-6 py-8">
           <h1 className="text-[28px] leading-[36px] font-semibold mb-4">
             {PAGE_TITLE}
           </h1>
 
-          {/* LEYENDA DE TIPOS DE EVENTO */}
           <div className="flex flex-wrap items-center gap-6 text-[14px] mb-4">
             {[...new Set(events.map(ev => ev.type))].map(type => (
               <span key={type} className="inline-flex items-center gap-2">
@@ -213,7 +211,6 @@ export default function EventosPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-            {/* CALENDARIO */}
             <div className="space-y-6">
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 pt-4">
@@ -295,7 +292,6 @@ export default function EventosPage() {
                 </div>
               </div>
 
-              {/* RESERVAS */}
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="px-5 py-4 border-b">
                   <h3 className="text-[15px] font-semibold text-gray-700">
@@ -326,7 +322,6 @@ export default function EventosPage() {
               </div>
             </div>
 
-            {/* PANEL DE EVENTOS */}
             <div className="space-y-6">
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="px-5 py-4 border-b">
@@ -356,7 +351,6 @@ export default function EventosPage() {
                 </div>
               </div>
 
-              {/* PRÓXIMOS EVENTOS */}
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="px-5 py-4 border-b">
                   <h3 className="text-[15px] font-semibold text-gray-700">
@@ -389,7 +383,6 @@ export default function EventosPage() {
         </div>
       </div>
 
-      {/* DIALOGO */}
       <AlertDialog open={openEventDlg} onOpenChange={setOpenEventDlg}>
         <AlertDialogContent className="w-[520px]">
           <div className="flex justify-end">
