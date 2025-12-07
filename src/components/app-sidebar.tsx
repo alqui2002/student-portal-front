@@ -1,5 +1,6 @@
 "use client";
-
+import { useEffect } from "react";
+import { syncUserWithBackend } from "@/lib/api/user-sync";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -28,6 +29,10 @@ const isActive = (pathname: string, href: string) =>
   pathname === href || (href !== "/" && pathname.startsWith(href));
 
 export function AppSidebar() {
+  // AGREGAR ESTO: Sincronización de usuario al montar el componente
+  useEffect(() => {
+    syncUserWithBackend();
+  }, []); // El [] vacío asegura que solo corra 1 vez al entrar
   const pathname = usePathname();
 
   // Configuración de items del menú
