@@ -94,3 +94,8 @@ export interface NotificationData {
   context?: string;
   contextLink?: string;
 }
+
+export interface SyncWalletResponse {
+  success: boolean;
+  balance: string;
+}

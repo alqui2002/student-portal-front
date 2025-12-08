@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/loader";
 
-import { getEventsByUser } from "@/lib/api/calendar";
+import { getEventsByUser, syncEvents } from "@/lib/api/calendar";
 
 const PAGE_TITLE = "Calendario Académico";
 
@@ -130,7 +130,12 @@ export default function EventosPage() {
     async function fetchEvents() {
       try {
         setLoading(true);
+        try {
+          await syncEvents();
+        } catch (err) {}
+
         const data = await getEventsByUser();
+        console.log("📅 Eventos crudos:", data);
 
         const fixed = (data as any[]).map((item: any) => ({
           id: item.id,

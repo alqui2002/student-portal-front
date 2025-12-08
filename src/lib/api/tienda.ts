@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import { Saldo, Compra } from "./types";
+import { Saldo, Compra, SyncWalletResponse } from "./types";
 
 const userId = "00debe32-abd2-45a8-bece-3d3b752fa140";
 
@@ -38,6 +38,12 @@ export async function loadBalance(depositData: CardDetails) {
 
 export async function syncPurchases(): Promise<any> {
   return apiFetch<any>(`/users/${userId}/purchases/store/sync`, {
+    method: "GET",
+  });
+}
+
+export async function syncWallet(): Promise<SyncWalletResponse> {
+  return apiFetch<any>(`/account/wallet/sync`, {
     method: "GET",
   });
 }

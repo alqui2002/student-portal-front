@@ -10,6 +10,7 @@ import {
   getBalance,
   getPurchaseHistory,
   syncPurchases,
+  syncWallet,
 } from "@/lib/api/tienda";
 import { Saldo } from "@/lib/api/types";
 type Compra = {
@@ -45,6 +46,7 @@ export default function StorePage() {
   const [balance, setBalance] = useState<Saldo | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<Compra[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [spentThisMonth, setSpentThisMonth] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,17 +54,16 @@ export default function StorePage() {
 
       try {
         await syncPurchases();
-      } catch (err) {
-        console.warn("SyncPurchases falló, continuamos igual:", err);
-      }
+      } catch (err) {}
+
+      try {
+        const syncResult = await syncWallet();
+      } catch (err) {}
 
       try {
         const balanceData = await getBalance();
         setBalance(balanceData);
-      } catch (error: any) {
-        console.error("Balance account not found", error.message);
-        setBalance({ balance: 0 });
-      }
+      } catch (error: any) {}
 
       try {
         const historyData = await getPurchaseHistory();
@@ -92,6 +93,27 @@ export default function StorePage() {
         });
 
         setPurchaseHistory(transformedHistory);
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const totalSpent = transformedHistory
+          .filter(p => {
+            const date = new Date(p.date);
+
+            const isTransfer =
+              p.product.length === 1 &&
+              p.product[0].name === "Transferencia recibida";
+
+            return (
+              !isTransfer &&
+              date.getMonth() === currentMonth &&
+              date.getFullYear() === currentYear
+            );
+          })
+          .reduce((sum, p) => sum + Number(p.total), 0);
+
+        setSpentThisMonth(totalSpent);
       } catch (error: any) {
         console.error("Purchase history not found", error.message);
         setPurchaseHistory([]);
@@ -212,7 +234,7 @@ export default function StorePage() {
                 </div>
                 <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
                   <span className="text-2xl font-bold text-gray-800">
-                    {formatCurrency(0)}
+                    {formatCurrency(spentThisMonth)}
                   </span>
                   <span className="text-sm text-gray-500">
                     Gastado este mes
