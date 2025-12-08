@@ -29,7 +29,7 @@ import { getEventsByUser, syncEvents } from "@/lib/api/calendar";
 
 const PAGE_TITLE = "Calendario Académico";
 
-type EventType = "examen" | "event" | "extracurricular" | "holiday" | "class";
+type EventType = "examen" | "evento" | "extracurricular" | "holiday" | "class";
 type UniEvent = {
   id: string;
   type: EventType;
