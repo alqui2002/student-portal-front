@@ -4,7 +4,18 @@ export interface Saldo {
 
 export interface Compra {
   id: string;
-  product: { description: string };
+  product: {
+    map(
+      arg0: (prod: {
+        name: string;
+        description: any;
+        quantity: any;
+        subtotal: any;
+      }) => { description: any; quantity: any; subtotal: any }
+    ): any;
+    length: number;
+    description: string;
+  };
   date: string;
   total: number;
 }

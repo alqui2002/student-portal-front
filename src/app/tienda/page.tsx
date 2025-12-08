@@ -11,8 +11,11 @@ import {
   getPurchaseHistory,
   syncPurchases,
 } from "@/lib/api/tienda";
-import { Saldo, Compra as OriginalCompra } from "@/lib/api/types";
-type Compra = OriginalCompra & {
+import { Saldo } from "@/lib/api/types";
+type Compra = {
+  id: string;
+  date: string;
+  total: number;
   product: {
     name: string;
     description: string;
