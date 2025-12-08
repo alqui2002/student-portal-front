@@ -63,15 +63,30 @@ export default function StorePage() {
 
       try {
         const historyData = await getPurchaseHistory();
-        const transformedHistory = historyData.map(item => ({
-          ...item,
-          product: item.product.map(prod => ({
-            name: prod.name ?? "Producto sin nombre",
-            description: prod.description,
-            quantity: prod.quantity || 0,
-            subtotal: Number(prod.subtotal) || 0,
-          })),
-        }));
+        const transformedHistory = historyData.map(item => {
+          const products = Array.isArray(item.product)
+            ? item.product
+            : [item.product];
+
+          return {
+            ...item,
+            product: products.map(prod => ({
+              name:
+                typeof prod === "object" && "name" in prod
+                  ? (prod.name ?? "Producto sin nombre")
+                  : "Producto sin nombre",
+              description: prod.description ?? "",
+              quantity:
+                typeof prod === "object" && "quantity" in prod
+                  ? prod.quantity || 0
+                  : 0,
+              subtotal:
+                typeof prod === "object" && "subtotal" in prod
+                  ? Number(prod.subtotal) || 0
+                  : 0,
+            })),
+          };
+        });
 
         setPurchaseHistory(transformedHistory);
       } catch (error: any) {
