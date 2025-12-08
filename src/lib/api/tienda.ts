@@ -1,7 +1,7 @@
 import { apiFetch } from "./client";
 import { Saldo, Compra } from "./types";
 
-const userId = "3e7df85d-2eac-4c1d-aa7f-87e1ec2b11e6";
+const userId = "00debe32-abd2-45a8-bece-3d3b752fa140";
 
 interface ApiBalanceResponse {
   balance: string;
@@ -34,9 +34,10 @@ export async function loadBalance(depositData: CardDetails) {
     cvv: depositData.cvv,
     amount: String(depositData.amount),
   };
+}
 
-  return apiFetch<any>(`/account/${userId}/transactions`, {
-    method: "POST",
-    body: JSON.stringify(apiRequestBody),
+export async function syncPurchases(): Promise<any> {
+  return apiFetch<any>(`/users/${userId}/purchases/store/sync`, {
+    method: "GET",
   });
 }

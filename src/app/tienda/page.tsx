@@ -1,11 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ReactNode } from "react";
 import Link from "next/link";
 import { PanelLeft, Plus, X } from "lucide-react";
+import { AlertDialogDescription } from "@/components/ui/alert-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
-import { getBalance, getPurchaseHistory } from "@/lib/api/tienda";
-import { Saldo, Compra } from "@/lib/api/types";
+import {
+  getBalance,
+  getPurchaseHistory,
+  syncPurchases,
+} from "@/lib/api/tienda";
+import { Saldo, Compra as OriginalCompra } from "@/lib/api/types";
+type Compra = OriginalCompra & {
+  product: {
+    name: string;
+    description: string;
+    quantity: number;
+    subtotal: number;
+  }[];
+};
 
 import {
   Breadcrumb,
@@ -32,6 +46,13 @@ export default function StorePage() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+
+      try {
+        await syncPurchases();
+      } catch (err) {
+        console.warn("SyncPurchases falló, continuamos igual:", err);
+      }
+
       try {
         const balanceData = await getBalance();
         setBalance(balanceData);
@@ -42,7 +63,17 @@ export default function StorePage() {
 
       try {
         const historyData = await getPurchaseHistory();
-        setPurchaseHistory(historyData);
+        const transformedHistory = historyData.map(item => ({
+          ...item,
+          product: item.product.map(prod => ({
+            name: prod.name ?? "Producto sin nombre",
+            description: prod.description,
+            quantity: prod.quantity || 0,
+            subtotal: Number(prod.subtotal) || 0,
+          })),
+        }));
+
+        setPurchaseHistory(transformedHistory);
       } catch (error: any) {
         console.error("Purchase history not found", error.message);
         setPurchaseHistory([]);
@@ -64,18 +95,25 @@ export default function StorePage() {
   };
 
   const formatHistoryAmount = (amount: number) => {
-    const options: Intl.NumberFormatOptions = {
+    const formattedAmount = new Intl.NumberFormat("es-AR", {
       style: "decimal",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    };
-    const formattedAmount = new Intl.NumberFormat("es-AR", options).format(
-      amount
-    );
+    }).format(amount);
+
     return `$${formattedAmount}`;
   };
 
   const handlePurchaseClick = (purchase: Compra) => {
+    const isTransfer =
+      purchase.product.length === 1 &&
+      purchase.product[0].name === "Transferencia recibida";
+
+    if (isTransfer) {
+      console.log("No se abre modal porque es transferencia");
+      return;
+    }
+
     setSelectedPurchase(purchase);
     setIsModalOpen(true);
   };
@@ -90,8 +128,33 @@ export default function StorePage() {
     });
   };
 
+  const getEntidad = (purchase: Compra | null) => {
+    if (!purchase) return "";
+    const first = purchase.product?.[0];
+    if (!first) return "Tienda General";
+
+    if (first.description.includes("Biblioteca")) return "Biblioteca";
+    if (first.description.includes("Cafetería")) return "Cafetería";
+    return "Tienda General";
+  };
+
+  const getTituloCompra = (purchase: Compra) => {
+    const p = purchase.product;
+
+    if (p.length === 1 && p[0].name === "Transferencia recibida") {
+      return "Transferencia";
+    }
+
+    if (p.length === 1) {
+      return "Compra en tienda";
+    }
+
+    return `${p.length} productos`;
+  };
+
   return (
     <main className="w-full flex flex-col bg-white">
+      {/* HEADER */}
       <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px] shrink-0 bg-white">
         <PanelLeft size={15} />
         <span className="text-muted-foreground">|</span>
@@ -105,6 +168,7 @@ export default function StorePage() {
       </div>
 
       <div className="p-8 flex-grow overflow-auto">
+        {/* SALDO SECTION */}
         <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Saldo institucional</h1>
@@ -114,6 +178,7 @@ export default function StorePage() {
               </Button>
             </Link>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {isLoading ? (
               <p>Cargando saldo...</p>
@@ -146,8 +211,10 @@ export default function StorePage() {
           </div>
         </section>
 
+        {/* HISTORIAL SECTION */}
         <section className="mt-8 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="text-2xl font-bold mb-6">Historial de compras</h2>
+
           <div className="space-y-4">
             {isLoading ? (
               <p>Cargando historial...</p>
@@ -160,14 +227,16 @@ export default function StorePage() {
                 >
                   <div>
                     <p className="font-semibold text-gray-800 text-lg">
-                      {purchase.product.description}
+                      {getTituloCompra(purchase)}
                     </p>
+
                     <p className="text-sm text-gray-500">
                       {new Date(purchase.date).toLocaleDateString("es-ES")}
                     </p>
                   </div>
+
                   <p className="font-semibold text-gray-900 text-lg">
-                    {formatHistoryAmount(purchase.total)}
+                    {formatHistoryAmount(Number(purchase.total))}
                   </p>
                 </div>
               ))
@@ -177,23 +246,34 @@ export default function StorePage() {
           </div>
         </section>
 
+        {/* MODAL */}
+
         <AlertDialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <AlertDialogContent className="sm:max-w-md">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-center text-2xl font-bold pt-4">
                 Resumen de compra
               </AlertDialogTitle>
+
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none"
+                className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none"
               >
                 <X className="h-5 w-5" />
-                <span className="sr-only">Cerrar</span>
               </button>
             </AlertDialogHeader>
 
+            {/* 🔥 DESCRIPCIÓN OBLIGATORIA PERO OCULTA */}
+            <AlertDialogDescription asChild>
+              <VisuallyHidden>
+                Detalles completos de la compra seleccionada, incluyendo fecha,
+                entidad, lista de productos y montos totales.
+              </VisuallyHidden>
+            </AlertDialogDescription>
+
             <Separator />
 
+            {/* FECHA Y ENTIDAD */}
             <div className="py-2 space-y-3">
               <div className="text-base">
                 <span className="font-bold text-gray-900">Fecha: </span>
@@ -201,42 +281,103 @@ export default function StorePage() {
                   {formatPopupDate(selectedPurchase?.date)}
                 </span>
               </div>
+
               <div className="text-base">
                 <span className="font-bold text-gray-900">Entidad: </span>
                 <span className="text-gray-600">
-                  {selectedPurchase?.product.description.includes("Biblioteca")
-                    ? "Biblioteca"
-                    : selectedPurchase?.product.description.includes(
-                          "Cafetería"
-                        )
-                      ? "Cafetería"
-                      : "Tienda General"}
+                  {getEntidad(selectedPurchase)}
                 </span>
               </div>
             </div>
 
             <Separator />
 
+            {/* LISTA DE PRODUCTOS */}
             <div className="py-2 space-y-4">
               <h3 className="text-lg font-bold">Detalles de Pago</h3>
+
               <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {selectedPurchase?.product.description}
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {formatHistoryAmount(selectedPurchase?.total ?? 0)}
-                  </span>
-                </div>
+                {selectedPurchase?.product.map(
+                  (
+                    prod: {
+                      name:
+                        | string
+                        | number
+                        | bigint
+                        | boolean
+                        | React.ReactElement<
+                            unknown,
+                            string | React.JSXElementConstructor<any>
+                          >
+                        | Iterable<React.ReactNode>
+                        | React.ReactPortal
+                        | Promise<
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | React.ReactPortal
+                            | React.ReactElement<
+                                unknown,
+                                string | React.JSXElementConstructor<any>
+                              >
+                            | Iterable<React.ReactNode>
+                            | null
+                            | undefined
+                          >
+                        | null
+                        | undefined;
+                      quantity:
+                        | string
+                        | number
+                        | bigint
+                        | boolean
+                        | React.ReactElement<
+                            unknown,
+                            string | React.JSXElementConstructor<any>
+                          >
+                        | Iterable<React.ReactNode>
+                        | React.ReactPortal
+                        | Promise<
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | React.ReactPortal
+                            | React.ReactElement<
+                                unknown,
+                                string | React.JSXElementConstructor<any>
+                              >
+                            | Iterable<React.ReactNode>
+                            | null
+                            | undefined
+                          >
+                        | null
+                        | undefined;
+                      subtotal: any;
+                    },
+                    idx: React.Key | null | undefined
+                  ) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-gray-600">
+                        {prod.name} x{prod.quantity}
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        ${Number(prod.subtotal).toLocaleString("es-AR")}
+                      </span>
+                    </div>
+                  )
+                )}
               </div>
             </div>
 
             <Separator />
 
+            {/* TOTAL */}
             <div className="py-2 flex justify-between">
               <span className="text-lg font-bold">Total</span>
               <span className="text-lg font-bold">
-                {formatHistoryAmount(selectedPurchase?.total ?? 0)}
+                ${Number(selectedPurchase?.total ?? 0).toLocaleString("es-AR")}
               </span>
             </div>
           </AlertDialogContent>

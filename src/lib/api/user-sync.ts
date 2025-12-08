@@ -1,55 +1,50 @@
 import { apiFetch } from "@/lib/api/client";
 import { jwtDecode } from "jwt-decode";
 
-// Definimos la estructura del Token del Core
 interface CoreTokenPayload {
   sub: string;
-  name: string;
   email: string;
+  name: string;
   role: string;
+  subrol: string | null;
+  career: {
+    uuid: string;
+    name: string;
+  };
+  wallet: any[];
+  iat: number;
   exp: number;
 }
 
-// Definimos lo que espera el Backend (según el DTO que me pasaste)
-interface CreateUserDto {
-  firstName: string;
-  lastName: string;
+interface SyncUserDto {
+  uuid: string;
   email: string;
-  password: string;
+  name: string;
+  careerId: string;
 }
 
 export async function syncUserWithBackend() {
-  // 1. Obtenemos el token del navegador
   const token = document.cookie
     .split("; ")
     .find(row => row.startsWith("JWT="))
     ?.split("=")[1];
 
-  if (!token) return;
+  if (!token) {
+    console.log("No hay JWT en cookies, no se sincroniza usuario.");
+    return;
+  }
 
   try {
-    // 2. Decodificamos el token para sacar los datos
     const decoded = jwtDecode<CoreTokenPayload>(token);
 
-    // 3. Preparamos los datos para el Backend
-    // El Core manda "name": "Juan Perez", el backend quiere separado.
-    const nameParts = decoded.name.split(" ");
-    const firstName = nameParts[0];
-    const lastName = nameParts.slice(1).join(" ") || "Estudiante"; // Por si no tiene apellido
-
-    const payload: CreateUserDto = {
-      firstName: firstName,
-      lastName: lastName,
+    const payload: SyncUserDto = {
+      uuid: decoded.sub,
       email: decoded.email,
-      // GENERAMOS PASSWORD FICTICIA
-      // El backend la exige por el DTO, pero el usuario usa Login Core.
-      // Ponemos una cadena larga y segura que nadie usará.
-      password: `CoreAuth_${decoded.sub}_Secure`,
+      name: decoded.name,
+      careerId: "9934e1b7-dd30-4fd7-a59f-b6f320d1a4c7",
     };
 
-    // 4. Llamamos al endpoint POST /users
-    // Nota: Usamos fetch directo o apiFetch ignorando errores de "ya existe"
-    console.log("Sincronizando usuario...", payload.email);
+    console.log("Sincronizando usuario con backend...", payload);
 
     await apiFetch("/users", {
       method: "POST",
@@ -58,7 +53,6 @@ export async function syncUserWithBackend() {
 
     console.log("Usuario sincronizado correctamente.");
   } catch (error) {
-    // Si el error es que ya existe, lo ignoramos (es lo esperado)
     console.log("El usuario ya existe o hubo un error de sync:", error);
   }
 }
