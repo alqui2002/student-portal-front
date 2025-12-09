@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { syncUserWithBackend } from "@/lib/api/user-sync";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,21 +21,28 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from "@/components/ui/sidebar"; // Fíjate que esto importa del MOTOR (el de 700 líneas)
+} from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// Función para ver si el link está activo
+import { getUser } from "@/lib/api/core";
+
 const isActive = (pathname: string, href: string) =>
   pathname === href || (href !== "/" && pathname.startsWith(href));
 
 export function AppSidebar() {
-  // AGREGAR ESTO: Sincronización de usuario al montar el componente
+  const [userName, setUserName] = useState<string>("");
+  const [userMail, setUserMail] = useState<string>("");
   useEffect(() => {
-    syncUserWithBackend();
-  }, []); // El [] vacío asegura que solo corra 1 vez al entrar
+    const fetchData = async () => {
+      syncUserWithBackend();
+      const data = (await getUser()) as { name: string; email: string };
+      setUserName(data.name);
+      setUserMail(data.email);
+    };
+    fetchData();
+  }, []);
   const pathname = usePathname();
 
-  // Configuración de items del menú
   const menuItems = [
     { title: "Mis Cursos", url: "/misCursos", icon: BookOpen },
     { title: "Inscripciones", url: "/inscripciones", icon: SquareTerminal },
@@ -46,7 +53,7 @@ export function AppSidebar() {
   return (
     <Sidebar className="bg-[#FAFAFA]">
       <SidebarHeader>
-        <div className="flex items-center gap-7 px-3 mb-2 h-[53px]">
+        <div className="flex items-center gap-7 px-3 mb-2 h-[53px] ">
           <Image src="/logoUADE.png" alt="Logo" width={80} height={80} />
           <span className="px-5 py-1 bg-[#193167] text-white text-sm font-bold rounded-2xl">
             CONNECT
@@ -76,15 +83,15 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="flex flex-row justify-between items-center p-4 border-t">
-        <div className="flex items-center gap-3">
+      <SidebarFooter className="flex flex-row justify-between items-center p-4 border-t ">
+        <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8">
             <AvatarImage src="user.jpg" />
             <AvatarFallback>CN</AvatarFallback>
           </Avatar>
           <div className="flex flex-col leading-tight">
-            <span className="text-xs font-semibold">Example</span>
-            <span className="text-[11px] text-gray-500">m@example.com</span>
+            <span className="text-xs font-semibold">{userName}</span>
+            <span className="text-[11px] text-gray-500">{userMail}</span>
           </div>
         </div>
         <Link

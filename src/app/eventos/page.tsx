@@ -43,7 +43,7 @@ type UniEvent = {
 type DiningSlot = { label: string; from: string; to: string };
 const dotColors: Record<string, string> = {
   examen: "bg-blue-500",
-  event: "bg-amber-600",
+  evento: "bg-amber-600",
   extracurricular: "bg-green-600",
   holiday: "bg-purple-500",
   class: "bg-gray-500",
