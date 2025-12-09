@@ -406,7 +406,7 @@ export default function EventosPage() {
                   className={
                     activeEvent.type === "examen"
                       ? "bg-blue-500 text-white"
-                      : activeEvent.type === "event"
+                      : activeEvent.type === "evento"
                         ? "bg-amber-600/90 text-white"
                         : activeEvent.type === "extracurricular"
                           ? "bg-green-600 text-white"
@@ -417,7 +417,7 @@ export default function EventosPage() {
                 >
                   {activeEvent.type === "examen"
                     ? "examenen"
-                    : activeEvent.type === "event"
+                    : activeEvent.type === "evento"
                       ? "Evento"
                       : activeEvent.type === "extracurricular"
                         ? "Actividad extracurricular"
