@@ -8,3 +8,6 @@ const BASE_URL =
 export async function getUser() {
   return apiFetch("/account/me");
 }
+export async function getCareer() {
+  return apiFetch("/careers/sync");
+}
