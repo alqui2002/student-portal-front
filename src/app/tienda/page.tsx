@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
+import Loader from "@/components/ui/loader";
 
 export default function StorePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,14 +52,6 @@ export default function StorePage() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-
-      try {
-        await syncPurchases();
-      } catch (err) {}
-
-      try {
-        const syncResult = await syncWallet();
-      } catch (err) {}
 
       try {
         const balanceData = await getBalance();
@@ -192,6 +185,8 @@ export default function StorePage() {
     return `${p.length} productos`;
   };
 
+  if (isLoading) return <Loader message="Cargando tienda..." />;
+
   return (
     <main className="w-full flex flex-col bg-white">
       {/* HEADER */}
@@ -220,34 +215,26 @@ export default function StorePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {isLoading ? (
-              <p>Cargando saldo...</p>
-            ) : (
-              <>
-                <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
-                  <span className="text-2xl font-bold text-gray-800">
-                    {formatCurrency(balance?.balance ?? 0)}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    Saldo disponible
-                  </span>
-                </div>
-                <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
-                  <span className="text-2xl font-bold text-gray-800">
-                    {formatCurrency(spentThisMonth)}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    Gastado este mes
-                  </span>
-                </div>
-                <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
-                  <span className="text-2xl font-bold text-gray-800">
-                    {formatCurrency(0)}
-                  </span>
-                  <span className="text-sm text-gray-500">Total cargado</span>
-                </div>
-              </>
-            )}
+            <>
+              <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
+                <span className="text-2xl font-bold text-gray-800">
+                  {formatCurrency(balance?.balance ?? 0)}
+                </span>
+                <span className="text-sm text-gray-500">Saldo disponible</span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
+                <span className="text-2xl font-bold text-gray-800">
+                  {formatCurrency(spentThisMonth)}
+                </span>
+                <span className="text-sm text-gray-500">Gastado este mes</span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
+                <span className="text-2xl font-bold text-gray-800">
+                  {formatCurrency(0)}
+                </span>
+                <span className="text-sm text-gray-500">Total cargado</span>
+              </div>
+            </>
           </div>
         </section>
 
@@ -256,9 +243,7 @@ export default function StorePage() {
           <h2 className="text-2xl font-bold mb-6">Historial de compras</h2>
 
           <div className="space-y-4">
-            {isLoading ? (
-              <p>Cargando historial...</p>
-            ) : purchaseHistory.length > 0 ? (
+            {purchaseHistory.length > 0 ? (
               purchaseHistory.map(purchase => (
                 <div
                   key={purchase.id}

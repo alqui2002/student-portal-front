@@ -4,6 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import NotificationPopup from "@/components/ui/NotificationsPuopup";
 import { cookies } from "next/headers";
+import BackgroundSync from "@/components/system/backgroundSync";
 
 export const metadata: Metadata = {
   title: "UADE Connect",
@@ -20,6 +21,7 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="flex h-screen">
+        <BackgroundSync />
         <SidebarProvider>
           <AppSidebar />
           <main className="flex-1 bg-white overflow-y-auto">{children}</main>

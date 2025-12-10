@@ -130,9 +130,6 @@ export default function EventosPage() {
     async function fetchEvents() {
       try {
         setLoading(true);
-        try {
-          await syncEvents();
-        } catch (err) {}
 
         const data = await getEventsByUser();
         console.log("📅 Eventos crudos:", data);
