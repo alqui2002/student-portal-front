@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { syncPurchases, syncWallet } from "@/lib/api/tienda";
 import { syncEvents } from "@/lib/api/calendar"; // si existe
 import { syncUserWithBackend } from "@/lib/api/user-sync";
-import { getCareer } from "@/lib/api/core";
+import { syncCareer, syncCouses } from "@/lib/api/core";
 
 export default function BackgroundSync() {
   useEffect(() => {
@@ -18,7 +18,8 @@ export default function BackgroundSync() {
           syncWallet(),
           syncPurchases(),
           syncEvents(),
-          getCareer(),
+          syncCareer(),
+          syncCouses(),
         ]);
 
         console.log("✅ Background sync completado.");
