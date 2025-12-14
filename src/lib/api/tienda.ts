@@ -29,9 +29,10 @@ function getUserIdFromToken(): string {
 
 export async function getBalance(): Promise<Saldo> {
   const userId = getUserIdFromToken();
+  const timestamp = new Date().getTime();
 
   const apiData = await apiFetch<ApiBalanceResponse>(
-    `/account/${userId}/balance`,
+    `/account/${userId}/balance?t=${timestamp}`,
     {
       cache: "no-store",
       headers: {
@@ -48,13 +49,15 @@ export async function getBalance(): Promise<Saldo> {
 
 export async function getPurchaseHistory(): Promise<Compra[]> {
   const userId = getUserIdFromToken();
-  return apiFetch<Compra[]>(`/users/${userId}/purchases`);
+  const timestamp = new Date().getTime();
+  return apiFetch<Compra[]>(`/users/${userId}/purchases?t=${timestamp}`);
 }
 
 export async function loadBalance(depositData: CardDetails) {
   const userId = getUserIdFromToken();
 
   const apiRequestBody = {
+    // Limpiamos espacios
     cardNumber: depositData.cardNumber.replace(/\s/g, ""),
     expiration: depositData.expiration,
     cvv: depositData.cvv,
