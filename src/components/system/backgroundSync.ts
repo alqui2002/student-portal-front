@@ -20,7 +20,7 @@ export default function BackgroundSync() {
           syncPurchases(),
           syncEvents(),
           syncCouses(),
-          syncCommissions(),
+          //syncCommissions(),
         ]);
 
         console.log("✅ Background sync completado.");
