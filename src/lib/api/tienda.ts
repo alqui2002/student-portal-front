@@ -13,6 +13,29 @@ export interface CardDetails {
   amount: number;
 }
 
+function getWalletIdFromToken(): string {
+  if (typeof document === "undefined") return "";
+
+  const token = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("JWT="))
+    ?.split("=")[1];
+
+  if (!token) throw new Error("No hay sesión activa");
+
+  const decoded: any = jwtDecode(token);
+
+  if (
+    decoded.wallet &&
+    Array.isArray(decoded.wallet) &&
+    decoded.wallet.length > 0
+  ) {
+    return decoded.wallet[0];
+  }
+
+  return decoded.sub;
+}
+
 function getUserIdFromToken(): string {
   if (typeof document === "undefined") return "";
 
@@ -54,17 +77,16 @@ export async function getPurchaseHistory(): Promise<Compra[]> {
 }
 
 export async function loadBalance(depositData: CardDetails) {
-  const userId = getUserIdFromToken();
+  const walletId = getWalletIdFromToken();
 
   const apiRequestBody = {
-    // Limpiamos espacios
     cardNumber: depositData.cardNumber.replace(/\s/g, ""),
     expiration: depositData.expiration,
     cvv: depositData.cvv,
     amount: String(depositData.amount),
   };
 
-  return apiFetch(`/account/${userId}/transactions`, {
+  return apiFetch(`/account/${walletId}/transactions`, {
     method: "POST",
     body: JSON.stringify(apiRequestBody),
   });
