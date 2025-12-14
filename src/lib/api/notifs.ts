@@ -1,7 +1,22 @@
 import { apiFetch } from "./client";
 import { NotificationData } from "./types";
 
-const userId = "00debe32-abd2-45a8-bece-3d3b752fa140";
+
+const userId = getUserIdFromToken();
+
+function getUserIdFromToken(): string {
+  if (typeof document === "undefined") return "";
+
+  const token = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("JWT="))
+    ?.split("=")[1];
+
+  if (!token) throw new Error("No hay sesión activa");
+
+  const decoded: any = jwtDecode(token);
+  return decoded.sub;
+}
 const token = getJwtFromCookie();
 
 export async function getNotificationsByUser(): Promise<NotificationData[]> {
