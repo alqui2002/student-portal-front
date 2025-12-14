@@ -41,7 +41,7 @@ export async function syncUserWithBackend() {
       uuid: decoded.sub,
       email: decoded.email,
       name: decoded.name,
-      careerId: "9934e1b7-dd30-4fd7-a59f-b6f320d1a4c7",
+      careerId: decoded.career.uuid,
     };
 
     console.log("Sincronizando usuario con backend...", payload);
