@@ -4,6 +4,8 @@ import { jwtDecode } from "jwt-decode";
 
 const CORE_LOGIN_URL = "https://core-frontend-2025-02.netlify.app";
 
+const PRODUCTION_URL = "https://student-portal-front-production.up.railway.app";
+
 interface JWTPayload {
   exp: number;
 }
@@ -20,30 +22,30 @@ export function middleware(req: NextRequest) {
   }
 
   const jwtFromUrl = searchParams.get("JWT");
-
   if (jwtFromUrl) {
     const cleanUrl = new URL(pathname, req.url);
-
     searchParams.forEach((value, key) => {
       if (key !== "JWT") cleanUrl.searchParams.set(key, value);
     });
 
     const res = NextResponse.redirect(cleanUrl);
-
     res.cookies.set("JWT", jwtFromUrl, {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
     });
-
     return res;
   }
 
   const cookieJwt = req.cookies.get("JWT")?.value;
 
   const redirectToCore = () => {
-    const returnUrl = encodeURIComponent(req.nextUrl.origin);
+    const isProduction = process.env.NODE_ENV === "production";
+
+    const origin = isProduction ? PRODUCTION_URL : req.nextUrl.origin;
+
+    const returnUrl = encodeURIComponent(origin);
 
     return NextResponse.redirect(`${CORE_LOGIN_URL}/?redirectUrl=${returnUrl}`);
   };
@@ -57,13 +59,11 @@ export function middleware(req: NextRequest) {
     const currentTime = Date.now() / 1000;
 
     if (decoded.exp < currentTime) {
-      console.log("Token vencido. Redirigiendo al Core para renovar.");
       const response = redirectToCore();
       response.cookies.delete("JWT");
       return response;
     }
   } catch (error) {
-    console.error("Token inválido:", error);
     return redirectToCore();
   }
 
