@@ -326,16 +326,14 @@ export default function LoadBalancePage() {
         >
           <AlertDialogContent className="text-center w-[500px]">
             <AlertDialogHeader>
-              <div className="jutify-start">
-                <Link
-                  href={"/tienda"}
-                  onClick={() => setIsBalanceConfirmed(false)}
-                  className="justify-start"
-                >
-                  <X color={"black"} className="justify-start">
-                    {" "}
-                  </X>
-                </Link>
+              <div
+                className="justify-start cursor-pointer"
+                onClick={() => {
+                  setIsBalanceConfirmed(false);
+                  window.location.href = "/tienda";
+                }}
+              >
+                <X color={"black"} className="justify-start" />
               </div>
 
               <AlertDialogTitle className="text-center">
