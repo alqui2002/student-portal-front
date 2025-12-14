@@ -14,13 +14,13 @@ export default function BackgroundSync() {
         console.log("🔄 Background sync iniciado...");
 
         await Promise.allSettled([
-          syncCareer(),
-          syncUserWithBackend(),
-          syncWallet(),
-          syncPurchases(),
-          syncEvents(),
-          syncCouses(),
-          syncCommissions(),
+          //syncCareer(),
+          //syncUserWithBackend(),
+          //syncWallet(),
+          //syncPurchases(),
+          //syncEvents(),
+          //syncCouses(),
+          //syncCommissions(),
         ]);
 
         console.log("✅ Background sync completado.");
