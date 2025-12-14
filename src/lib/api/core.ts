@@ -14,3 +14,6 @@ export async function syncCareer() {
 export async function syncCouses() {
   return apiFetch("/courses/sync");
 }
+export async function syncCommissions() {
+  return apiFetch("/commissions/sync");
+}
