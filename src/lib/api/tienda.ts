@@ -1,8 +1,11 @@
 import { apiFetch } from "./client";
 import { jwtDecode } from "jwt-decode";
-import { Saldo, Compra } from "./types"; // <--- AQUÍ QUITAMOS SyncWalletResponse
+import { Saldo, Compra } from "./types";
 
-// Definimos la interfaz que usa tu page.tsx
+interface ApiBalanceResponse {
+  balance: string;
+}
+
 export interface CardDetails {
   cardNumber: string;
   expiration: string;
@@ -10,7 +13,6 @@ export interface CardDetails {
   amount: number;
 }
 
-// Helper para obtener el ID del usuario desde la cookie JWT
 function getUserIdFromToken(): string {
   if (typeof document === "undefined") return "";
 
@@ -27,9 +29,18 @@ function getUserIdFromToken(): string {
 
 export async function getBalance(): Promise<Saldo> {
   const userId = getUserIdFromToken();
-  const apiData = await apiFetch<{ balance: string }>(
-    `/account/${userId}/balance`
+
+  const apiData = await apiFetch<ApiBalanceResponse>(
+    `/account/${userId}/balance`,
+    {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
+    }
   );
+
   return {
     balance: parseFloat(apiData.balance),
   };
@@ -63,7 +74,6 @@ export async function syncPurchases(): Promise<any> {
   });
 }
 
-// AQUÍ CAMBIAMOS EL TIPO DE RETORNO A 'any' PARA QUE NO FALLE
 export async function syncWallet(): Promise<any> {
   return apiFetch<any>(`/account/wallet/sync`, {
     method: "GET",
