@@ -25,7 +25,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/loader";
 
+// --- IMPORTS DE APIs ---
 import { getEventsByUser, syncEvents } from "@/lib/api/calendar";
+import { getUserDiningReservations } from "@/lib/api/dining"; // ✅ Nuevo import
+import { DiningReservation } from "@/lib/api/types"; // ✅ Nuevo import
 
 const PAGE_TITLE = "Calendario Académico";
 
@@ -120,21 +123,31 @@ const DINING_SLOTS: DiningSlot[] = [
 export default function EventosPage() {
   const [cursor, setCursor] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
-  const [events, setEvents] = useState<UniEvent[]>([]);
-  const [loading, setLoading] = useState(true);
 
+  const [events, setEvents] = useState<UniEvent[]>([]);
+  // ✅ 1. Estado para guardar reservas del comedor
+  const [reservations, setReservations] = useState<DiningReservation[]>([]);
+
+  const [loading, setLoading] = useState(true);
   const [openEventDlg, setOpenEventDlg] = useState(false);
   const [activeEvent, setActiveEvent] = useState<UniEvent | null>(null);
 
   useEffect(() => {
-    async function fetchEvents() {
+    async function fetchData() {
       try {
         setLoading(true);
 
-        const data = await getEventsByUser();
-        console.log("📅 Eventos crudos:", data);
+        // ✅ 2. Llamada en paralelo a Eventos y Comedor
+        const [eventsData, diningData] = await Promise.all([
+          getEventsByUser(),
+          getUserDiningReservations(),
+        ]);
 
-        const fixed = (data as any[]).map((item: any) => ({
+        console.log("📅 Eventos crudos:", eventsData);
+        console.log("🍽️ Reservas Comedor:", diningData);
+
+        // Normalizar Eventos
+        const fixed = (eventsData as any[]).map((item: any) => ({
           id: item.id,
           title: item.title,
           description: item.description,
@@ -146,15 +159,17 @@ export default function EventosPage() {
           type: (item.eventType?.toLowerCase?.() ?? "event") as EventType,
         }));
 
-        console.log("✅ Eventos normalizados:", fixed);
         setEvents(fixed);
+
+        // ✅ 3. Guardar Reservas (validando que sea array)
+        setReservations(Array.isArray(diningData) ? diningData : []);
       } catch (err) {
-        console.error("❌ Error al traer eventos:", err);
+        console.error("❌ Error al traer datos:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchEvents();
+    fetchData();
   }, []);
 
   const eventsByDay = useMemo(() => {
@@ -205,7 +220,9 @@ export default function EventosPage() {
             {[...new Set(events.map(ev => ev.type))].map(type => (
               <span key={type} className="inline-flex items-center gap-2">
                 <span
-                  className={`w-3 h-3 rounded ${dotColors[type] || "bg-gray-400"}`}
+                  className={`w-3 h-3 rounded ${
+                    dotColors[type] || "bg-gray-400"
+                  }`}
                 />
                 {cap(type)}
               </span>
@@ -294,6 +311,7 @@ export default function EventosPage() {
                 </div>
               </div>
 
+              {/* SECCIÓN COMEDOR DINÁMICA - CORREGIDA CON NOMBRES DE BACKEND */}
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="px-5 py-4 border-b">
                   <h3 className="text-[15px] font-semibold text-gray-700">
@@ -309,17 +327,55 @@ export default function EventosPage() {
                   </h3>
                 </div>
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {DINING_SLOTS.map(s => (
-                    <div
-                      key={s.label}
-                      className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center"
-                    >
-                      <div className="font-medium text-gray-700">{s.label}</div>
-                      <div className="text-[13px] text-gray-600 mt-1">
-                        {s.from} - {s.to}
+                  {DINING_SLOTS.map(slot => {
+                    // 1. Fecha seleccionada en string YYYY-MM-DD
+                    const selectedDateString = toDateOnly(selected);
+
+                    // 2. BUSCAR RESERVA (LÓGICA ACTUALIZADA)
+                    const reserva = reservations.find(r => {
+                      // El backend devuelve algo como "2025-12-15T00:00:00.000Z"
+                      // Cortamos los primeros 10 caracteres para obtener "2025-12-15"
+                      const backendDate = String(r.reservationDate).slice(
+                        0,
+                        10
+                      );
+
+                      // Comparamos fecha Y turno (usando 'mealTime' que viene del back)
+                      return (
+                        backendDate === selectedDateString &&
+                        r.mealTime === slot.label
+                      );
+                    });
+
+                    const tieneReserva = !!reserva;
+
+                    return (
+                      <div
+                        key={slot.label}
+                        className={`rounded-xl border p-4 text-center transition-all ${
+                          tieneReserva
+                            ? "border-green-200 bg-green-50 shadow-sm"
+                            : "border-gray-200 bg-gray-50 opacity-60"
+                        }`}
+                      >
+                        <div
+                          className={`font-medium ${tieneReserva ? "text-green-800" : "text-gray-700"}`}
+                        >
+                          {slot.label}
+                        </div>
+                        <div className="text-[13px] text-gray-600 mt-1">
+                          {slot.from} - {slot.to}
+                        </div>
+
+                        {/* Indicador visual */}
+                        <div
+                          className={`text-xs font-bold mt-2 ${tieneReserva ? "text-green-600" : "text-gray-400"}`}
+                        >
+                          {tieneReserva ? "RESERVADO ✅" : "Sin reserva"}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -413,7 +469,7 @@ export default function EventosPage() {
                   }
                 >
                   {activeEvent.type === "examen"
-                    ? "examenen"
+                    ? "examen" // Corregido typo anterior "examenen"
                     : activeEvent.type === "evento"
                       ? "Evento"
                       : activeEvent.type === "extracurricular"

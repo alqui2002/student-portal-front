@@ -99,3 +99,13 @@ export interface SyncWalletResponse {
   success: boolean;
   balance: string;
 }
+
+// ACTUALIZADO PARA COINCIDIR CON EL BACKEND
+export interface DiningReservation {
+  id: string;
+  userId?: string;
+  reservationDate: string; // Antes era "date"
+  mealTime: "Desayuno" | "Almuerzo" | "Merienda"; // Antes era "shift"
+  status: string;
+  cost?: number;
+}

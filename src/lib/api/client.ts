@@ -1,4 +1,5 @@
 const API_URL = "https://student-portal-api-production.up.railway.app";
+
 const CORE_LOGIN_URL = "https://core-frontend-2025-02.netlify.app";
 
 export async function apiFetch<T = unknown>(
