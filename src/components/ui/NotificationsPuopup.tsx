@@ -24,8 +24,14 @@ export default function NotificationPopup() {
         const data = await getNotificationsByUser();
 
         if (Array.isArray(data) && data.length > 0) {
-          setNotif(data[0]);
-          setOpen(true);
+          const validNotif = data.find(
+            (n: any) => !n.title?.toLowerCase().includes("transferencia")
+          );
+
+          if (validNotif) {
+            setNotif(validNotif);
+            setOpen(true);
+          }
         }
       } catch (err) {
         console.error("❌ Error al obtener notificaciones:", err);
@@ -38,15 +44,17 @@ export default function NotificationPopup() {
   if (!notif) return null;
 
   async function handleClose() {
-    patchReadNotification(notif.id);
+    if (notif?.id) {
+      await patchReadNotification(notif.id);
+    }
     setOpen(false);
   }
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="max-w-[420px] rounded-xl  shadow-lg">
+      <AlertDialogContent className="max-w-[420px] rounded-xl shadow-lg bg-white">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-lg font-semibold">
+          <AlertDialogTitle className="text-lg font-semibold text-black">
             {notif.title}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-gray-700 mt-2">
