@@ -1,5 +1,6 @@
 // lib/api/enrollments.ts
 
+import { jwtDecode } from "jwt-decode";
 import { apiFetch } from "./client";
 import {
   AvailableCourse,
