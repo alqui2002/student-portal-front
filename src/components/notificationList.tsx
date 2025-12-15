@@ -93,8 +93,21 @@ export default function NotificationList() {
     async function fetchNotifications() {
       try {
         const data = await getAllNotificationsByUser();
-        console.log("📬 Notificaciones desde backend:", data);
-        setNotifications(Array.isArray(data) ? data : []);
+        console.log("📬 Notificaciones desde backend (crudo):", data);
+
+        const cleanData = Array.isArray(data)
+          ? data.filter(n => {
+              const textToCheck =
+                `${n.title || ""} ${n.message || ""} ${n.description || ""}`.toLowerCase();
+              return !textToCheck.includes("transferencia");
+            })
+          : [];
+
+        console.log(
+          "✨ Notificaciones filtradas (sin transferencias):",
+          cleanData
+        );
+        setNotifications(cleanData);
       } catch (err) {
         console.error("❌ Error al traer notificaciones:", err);
       }
