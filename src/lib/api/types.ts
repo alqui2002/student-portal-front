@@ -75,7 +75,7 @@ export interface EnrollmentDetails {
 export interface AttendanceRecord {
   id: string | number;
   date: string;
-  present: boolean;
+  present: "P" | "A" | "M";
 }
 
 export interface CourseGrades {
