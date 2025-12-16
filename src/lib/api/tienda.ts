@@ -87,3 +87,7 @@ export async function syncWallet(): Promise<any> {
     method: "GET",
   });
 }
+
+export async function getWalletTransactions() {
+  return apiFetch("/transactions/wallet");
+}

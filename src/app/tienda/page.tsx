@@ -1,29 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, ReactNode } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { PanelLeft, Plus, X } from "lucide-react";
-import { AlertDialogDescription } from "@/components/ui/alert-dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { jwtDecode } from "jwt-decode";
 
 import {
   getBalance,
   getPurchaseHistory,
-  syncPurchases,
   syncWallet,
+  getWalletTransactions,
 } from "@/lib/api/tienda";
-import { Saldo } from "@/lib/api/types";
-type Compra = {
-  id: string;
-  date: string;
-  total: number;
-  product: {
-    name: string;
-    description: string;
-    quantity: number;
-    subtotal: number;
-  }[];
-};
 
 import {
   Breadcrumb,
@@ -37,163 +24,189 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/ui/loader";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+
+/* ===================== TIPOS ===================== */
+
+type Compra = {
+  id: string;
+  date: string;
+  total: number;
+  product: {
+    name: string;
+    description: string;
+    quantity: number;
+    subtotal: number;
+  }[];
+};
+
+type WalletTransfer = {
+  uuid: string;
+  from_wallet_uuid: string;
+  to_wallet_uuid: string;
+  amount: string;
+  description?: string;
+  created_at: string;
+};
+
+/* ===================== COMPONENTE ===================== */
 
 export default function StorePage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPurchase, setSelectedPurchase] = useState<Compra | null>(null);
-  const [balance, setBalance] = useState<Saldo | null>(null);
-  const [purchaseHistory, setPurchaseHistory] = useState<Compra[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [history, setHistory] = useState<Compra[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Compra | null>(null);
+  type FilterType = "ALL" | "PURCHASES" | "TRANSFERS";
+
+  const [filter, setFilter] = useState<FilterType>("ALL");
+
   const [spentThisMonth, setSpentThisMonth] = useState(0);
+  const [loadedThisMonth, setLoadedThisMonth] = useState(0);
+
+  /* -------- Wallet desde JWT -------- */
+  const token =
+    typeof document !== "undefined"
+      ? document.cookie
+          .split("; ")
+          .find(r => r.startsWith("JWT="))
+          ?.split("=")[1]
+      : null;
+
+  const decoded: any = token ? jwtDecode(token) : null;
+  const myWalletId: string | undefined = decoded?.wallet?.[0];
+
+  /* ===================== LOAD ===================== */
 
   useEffect(() => {
-    const fetchData = async () => {
-      syncWallet();
-      setIsLoading(true);
+    const load = async () => {
+      setLoading(true);
+
+      await syncWallet().catch(() => {});
+
+      let purchases: Compra[] = [];
+      let transfers: Compra[] = [];
+
+      /* -------- COMPRAS -------- */
+      try {
+        const rawPurchases = await getPurchaseHistory();
+        purchases = rawPurchases.map((p: any) => ({
+          id: p.id,
+          date: p.date,
+          total: Number(p.total),
+          product: p.product.map((x: any) => ({
+            name: x.name,
+            description: x.description ?? "",
+            quantity: Number(x.quantity ?? 1),
+            subtotal: Number(x.subtotal),
+          })),
+        }));
+      } catch {}
+
+      /* -------- TRANSFERENCIAS -------- */
+      try {
+        const rawTransfers =
+          (await getWalletTransactions()) as WalletTransfer[];
+
+        transfers = rawTransfers
+          .filter(
+            t =>
+              t.to_wallet_uuid === myWalletId ||
+              t.from_wallet_uuid === myWalletId
+          )
+          .map(t => {
+            const incoming = t.to_wallet_uuid === myWalletId;
+            const amount = Number(t.amount);
+            const signed = incoming ? amount : -amount;
+
+            return {
+              id: t.uuid,
+              date: t.created_at,
+              total: signed,
+              product: [
+                {
+                  name: incoming
+                    ? "Transferencia recibida"
+                    : "Transferencia enviada",
+                  description: t.description ?? "",
+                  quantity: 1,
+                  subtotal: signed,
+                },
+              ],
+            };
+          });
+      } catch {}
+
+      const unified = [...purchases, ...transfers].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setHistory(unified);
+
+      /* -------- TICKETS DEL MES -------- */
+      const now = new Date();
+      const m = now.getMonth();
+      const y = now.getFullYear();
+
+      let spent = 0;
+      let loaded = 0;
+
+      unified.forEach(h => {
+        const d = new Date(h.date);
+        if (d.getMonth() !== m || d.getFullYear() !== y) return;
+
+        const isTransfer =
+          h.product.length === 1 &&
+          h.product[0].name.startsWith("Transferencia");
+
+        if (!isTransfer && h.total > 0) spent += h.total;
+        if (isTransfer && h.total > 0) loaded += h.total;
+      });
+
+      setSpentThisMonth(spent);
+      setLoadedThisMonth(loaded);
 
       try {
-        const balanceData = await getBalance();
-        setBalance(balanceData);
-      } catch (error: any) {}
+        const b = await getBalance();
+        setBalance(Number(b.balance));
+      } catch {}
 
-      try {
-        const historyData = await getPurchaseHistory();
-        const transformedHistory = historyData.map(item => {
-          const products = Array.isArray(item.product)
-            ? item.product
-            : [item.product];
-
-          return {
-            ...item,
-            product: products.map(prod => ({
-              name:
-                typeof prod === "object" && "name" in prod
-                  ? (prod.name ?? "Producto sin nombre")
-                  : "Producto sin nombre",
-              description: prod.description ?? "",
-              quantity:
-                typeof prod === "object" && "quantity" in prod
-                  ? prod.quantity || 0
-                  : 0,
-              subtotal:
-                typeof prod === "object" && "subtotal" in prod
-                  ? Number(prod.subtotal) || 0
-                  : 0,
-            })),
-          };
-        });
-
-        setPurchaseHistory(transformedHistory);
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const totalSpent = transformedHistory
-          .filter(p => {
-            const date = new Date(p.date);
-
-            const isTransfer =
-              p.product.length === 1 &&
-              p.product[0].name === "Transferencia recibida";
-
-            return (
-              !isTransfer &&
-              date.getMonth() === currentMonth &&
-              date.getFullYear() === currentYear
-            );
-          })
-          .reduce((sum, p) => sum + Number(p.total), 0);
-
-        setSpentThisMonth(totalSpent);
-      } catch (error: any) {
-        console.error("Purchase history not found", error.message);
-        setPurchaseHistory([]);
-      }
-      setIsLoading(false);
+      setLoading(false);
     };
 
-    fetchData();
-  }, []);
+    load();
+  }, [myWalletId]);
 
-  const formatCurrency = (amount: number) => {
-    const options: Intl.NumberFormatOptions = {
+  /* ===================== HELPERS ===================== */
+
+  const isTransfer = (c: Compra) =>
+    c.product.length === 1 && c.product[0].name.startsWith("Transferencia");
+
+  const formatMoney = (n: number) =>
+    new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency: "ARS",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    };
-    return new Intl.NumberFormat("es-AR", options).format(amount);
-  };
-
-  const formatHistoryAmount = (amount: number) => {
-    const formattedAmount = new Intl.NumberFormat("es-AR", {
-      style: "decimal",
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(n);
 
-    return `$${formattedAmount}`;
-  };
+  if (loading) return <Loader message="Cargando tienda..." />;
+  const filteredHistory = history.filter(h => {
+    if (filter === "ALL") return true;
+    if (filter === "PURCHASES") return !isTransfer(h);
+    if (filter === "TRANSFERS") return isTransfer(h);
+    return true;
+  });
 
-  const handlePurchaseClick = (purchase: Compra) => {
-    const isTransfer =
-      purchase.product.length === 1 &&
-      purchase.product[0].name === "Transferencia recibida";
-
-    if (isTransfer) {
-      console.log("No se abre modal porque es transferencia");
-      return;
-    }
-
-    setSelectedPurchase(purchase);
-    setIsModalOpen(true);
-  };
-
-  const formatPopupDate = (dateString: string | undefined) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const getEntidad = (purchase: Compra | null) => {
-    if (!purchase) return "";
-    const first = purchase.product?.[0];
-    if (!first) return "Tienda General";
-
-    if (first.description.includes("Biblioteca")) return "Biblioteca";
-    if (first.description.includes("Cafetería")) return "Cafetería";
-    return "Tienda General";
-  };
-
-  const getTituloCompra = (purchase: Compra) => {
-    const p = purchase.product;
-
-    if (p.length === 1 && p[0].name === "Transferencia recibida") {
-      return "Transferencia";
-    }
-
-    if (p.length === 1) {
-      return "Compra en tienda";
-    }
-
-    return `${p.length} productos`;
-  };
-
-  if (isLoading) return <Loader message="Cargando tienda..." />;
+  /* ===================== UI ===================== */
 
   return (
     <main className="w-full flex flex-col bg-white">
       {/* HEADER */}
-      <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px] shrink-0 bg-white">
+      <div className="pt-9 pb-9 pl-8 flex items-center gap-4 border-b">
         <PanelLeft size={15} />
-        <span className="text-muted-foreground">|</span>
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -203,212 +216,177 @@ export default function StorePage() {
         </Breadcrumb>
       </div>
 
-      <div className="p-8 flex-grow overflow-auto">
+      <div className="p-8 flex-grow overflow-auto space-y-8">
         {/* SALDO SECTION */}
         <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Saldo institucional</h1>
-            <Link href="/tienda/cargarSaldo" passHref>
+
+            <Link href="/tienda/cargarSaldo">
               <Button className="bg-[#6F97F0] hover:bg-[#5a81d4] cursor-pointer">
-                <Plus className="mr-2 h-4 w-4" /> Cargar Saldo
+                <Plus className="mr-2 h-4 w-4" />
+                Cargar saldo
               </Button>
             </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <>
-              <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
-                <span className="text-2xl font-bold text-gray-800">
-                  {formatCurrency(balance?.balance ?? 0)}
-                </span>
-                <span className="text-sm text-gray-500">Saldo disponible</span>
-              </div>
-              <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
-                <span className="text-2xl font-bold text-gray-800">
-                  {formatCurrency(spentThisMonth)}
-                </span>
-                <span className="text-sm text-gray-500">Gastado este mes</span>
-              </div>
-              <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
-                <span className="text-2xl font-bold text-gray-800">
-                  {formatCurrency(0)}
-                </span>
-                <span className="text-sm text-gray-500">Total cargado</span>
-              </div>
-            </>
+            <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
+              <span className="text-2xl font-bold text-gray-800">
+                {formatMoney(balance)}
+              </span>
+              <span className="text-sm text-gray-500">Saldo disponible</span>
+            </div>
+
+            <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
+              <span className="text-2xl font-bold text-gray-800">
+                {formatMoney(spentThisMonth)}
+              </span>
+              <span className="text-sm text-gray-500">Gastado este mes</span>
+            </div>
+
+            <div className="bg-gray-100 rounded-lg p-6 flex flex-col gap-2">
+              <span className="text-2xl font-bold text-gray-800">
+                {formatMoney(loadedThisMonth)}
+              </span>
+              <span className="text-sm text-gray-500">Total cargado</span>
+            </div>
           </div>
         </section>
+      </div>
 
-        {/* HISTORIAL SECTION */}
-        <section className="mt-8 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-2xl font-bold mb-6">Historial de compras</h2>
+      <div className="flex gap-2 mb-4 ml-8">
+        <Button
+          variant={filter === "ALL" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("ALL")}
+        >
+          Todos
+        </Button>
 
-          <div className="space-y-4">
-            {purchaseHistory.length > 0 ? (
-              purchaseHistory.map(purchase => (
-                <div
-                  key={purchase.id}
-                  className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handlePurchaseClick(purchase)}
-                >
-                  <div>
-                    <p className="font-semibold text-gray-800 text-lg">
-                      {getTituloCompra(purchase)}
-                    </p>
+        <Button
+          variant={filter === "PURCHASES" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("PURCHASES")}
+        >
+          Compras
+        </Button>
 
-                    <p className="text-sm text-gray-500">
-                      {new Date(purchase.date).toLocaleDateString("es-ES")}
-                    </p>
-                  </div>
+        <Button
+          variant={filter === "TRANSFERS" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("TRANSFERS")}
+        >
+          Transferencias
+        </Button>
+      </div>
 
-                  <p className="font-semibold text-gray-900 text-lg">
-                    {formatHistoryAmount(Number(purchase.total))}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500">No hay compras en tu historial.</p>
-            )}
-          </div>
-        </section>
+      {/* ===== HISTORIAL ===== */}
+      <section className="border rounded-2xl p-6 ml-8 mr-8">
+        <h2 className="text-2xl font-bold mb-4">Historial de movimientos</h2>
 
-        {/* MODAL */}
+        <div className="space-y-4">
+          {filteredHistory.map(h => (
+            <div
+              key={h.id}
+              className="border rounded-xl p-4 flex justify-between cursor-pointer hover:bg-gray-50"
+              onClick={() => !isTransfer(h) && setSelected(h)}
+            >
+              <div>
+                <p className="font-semibold">
+                  {isTransfer(h) ? h.product[0].name : "Compra de tienda"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {new Date(h.date).toLocaleDateString("es-AR")}
+                </p>
+              </div>
 
-        <AlertDialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <AlertDialogContent className="sm:max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-center text-2xl font-bold pt-4">
-                Resumen de compra
-              </AlertDialogTitle>
-
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none"
+              <p
+                className={`font-bold ${
+                  h.total < 0 ? "text-red-600" : "text-green-600"
+                }`}
               >
-                <X className="h-5 w-5" />
-              </button>
-            </AlertDialogHeader>
-
-            {/* 🔥 DESCRIPCIÓN OBLIGATORIA PERO OCULTA */}
-            <AlertDialogDescription asChild>
-              <VisuallyHidden>
-                Detalles completos de la compra seleccionada, incluyendo fecha,
-                entidad, lista de productos y montos totales.
-              </VisuallyHidden>
-            </AlertDialogDescription>
-
-            <Separator />
-
-            {/* FECHA Y ENTIDAD */}
-            <div className="py-2 space-y-3">
-              <div className="text-base">
-                <span className="font-bold text-gray-900">Fecha: </span>
-                <span className="text-gray-600">
-                  {formatPopupDate(selectedPurchase?.date)}
-                </span>
-              </div>
-
-              <div className="text-base">
-                <span className="font-bold text-gray-900">Entidad: </span>
-                <span className="text-gray-600">
-                  {getEntidad(selectedPurchase)}
-                </span>
-              </div>
+                {h.total < 0 ? "-" : "+"}
+                {formatMoney(Math.abs(h.total))}
+              </p>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <Separator />
+      {/* ===== MODAL COMPRA ===== */}
+      <AlertDialog open={!!selected} onOpenChange={() => setSelected(null)}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center text-2xl font-bold pt-4">
+              Resumen de compra
+            </AlertDialogTitle>
 
-            {/* LISTA DE PRODUCTOS */}
-            <div className="py-2 space-y-4">
-              <h3 className="text-lg font-bold">Detalles de Pago</h3>
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </AlertDialogHeader>
 
-              <div className="space-y-3">
-                {selectedPurchase?.product.map(
-                  (
-                    prod: {
-                      name:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | React.ReactElement<
-                            unknown,
-                            string | React.JSXElementConstructor<any>
-                          >
-                        | Iterable<React.ReactNode>
-                        | React.ReactPortal
-                        | Promise<
-                            | string
-                            | number
-                            | bigint
-                            | boolean
-                            | React.ReactPortal
-                            | React.ReactElement<
-                                unknown,
-                                string | React.JSXElementConstructor<any>
-                              >
-                            | Iterable<React.ReactNode>
-                            | null
-                            | undefined
-                          >
-                        | null
-                        | undefined;
-                      quantity:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | React.ReactElement<
-                            unknown,
-                            string | React.JSXElementConstructor<any>
-                          >
-                        | Iterable<React.ReactNode>
-                        | React.ReactPortal
-                        | Promise<
-                            | string
-                            | number
-                            | bigint
-                            | boolean
-                            | React.ReactPortal
-                            | React.ReactElement<
-                                unknown,
-                                string | React.JSXElementConstructor<any>
-                              >
-                            | Iterable<React.ReactNode>
-                            | null
-                            | undefined
-                          >
-                        | null
-                        | undefined;
-                      subtotal: any;
-                    },
-                    idx: React.Key | null | undefined
-                  ) => (
-                    <div key={idx} className="flex justify-between text-sm">
-                      <span className="text-gray-600">
-                        {prod.name} x{prod.quantity}
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        ${Number(prod.subtotal).toLocaleString("es-AR")}
-                      </span>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
+          {/* 🔥 DESCRIPCIÓN OBLIGATORIA (ACCESIBILIDAD) */}
+          <AlertDialogDescription asChild>
+            <VisuallyHidden>
+              Detalles completos de la compra seleccionada, incluyendo fecha,
+              entidad, lista de productos y montos totales.
+            </VisuallyHidden>
+          </AlertDialogDescription>
 
-            <Separator />
+          <Separator />
 
-            {/* TOTAL */}
-            <div className="py-2 flex justify-between">
-              <span className="text-lg font-bold">Total</span>
-              <span className="text-lg font-bold">
-                ${Number(selectedPurchase?.total ?? 0).toLocaleString("es-AR")}
+          {/* FECHA + ENTIDAD */}
+          <div className="py-2 space-y-3">
+            <div className="text-base">
+              <span className="font-bold text-gray-900">Fecha: </span>
+              <span className="text-gray-600">
+                {selected &&
+                  new Date(selected.date).toLocaleDateString("es-AR")}
               </span>
             </div>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+
+            <div className="text-base">
+              <span className="font-bold text-gray-900">Entidad: </span>
+              <span className="text-gray-600">Tienda</span>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* LISTA DE PRODUCTOS */}
+          <div className="py-2 space-y-4">
+            <h3 className="text-lg font-bold">Detalles de pago</h3>
+
+            <div className="space-y-3">
+              {selected?.product.map((prod, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span className="text-gray-600">
+                    {prod.name} x{prod.quantity}
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {formatMoney(prod.subtotal)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* TOTAL */}
+          <div className="py-2 flex justify-between">
+            <span className="text-lg font-bold">Total</span>
+            <span className="text-lg font-bold">
+              {formatMoney(Math.abs(selected?.total ?? 0))}
+            </span>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
