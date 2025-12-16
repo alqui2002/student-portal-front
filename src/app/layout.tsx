@@ -9,6 +9,9 @@ import BackgroundSync from "@/components/system/backgroundSync";
 export const metadata: Metadata = {
   title: "UADE Connect",
   description: "Portal del estudiante",
+  icons: {
+    icon: "/iconuade.png",
+  },
 };
 
 export default async function RootLayout({
