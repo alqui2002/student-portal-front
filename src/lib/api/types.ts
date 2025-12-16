@@ -106,7 +106,19 @@ export interface DiningReservation {
   id: string;
   userId?: string;
   reservationDate: string; // Antes era "date"
-  mealTime: "Desayuno" | "Almuerzo" | "Merienda"; // Antes era "shift"
+  mealTime: "DESAYUNO" | "ALMUERZO" | "MERIENDA"; // El backend devuelve en mayúsculas
   status: string;
-  cost?: number;
+  cost?: number | string;
+  reservationId?: number;
+  locationId?: string;
+  reservationTimeSlot?: string | null;
+  slotStartTime?: string;
+  slotEndTime?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }

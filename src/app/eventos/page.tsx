@@ -120,6 +120,13 @@ const DINING_SLOTS: DiningSlot[] = [
   { label: "Merienda", from: "16:00", to: "20:00" },
 ];
 
+// Mapeo de valores del backend (mayúsculas) a labels del frontend
+const MEAL_TIME_MAP: Record<string, string> = {
+  DESAYUNO: "Desayuno",
+  ALMUERZO: "Almuerzo",
+  MERIENDA: "Merienda",
+};
+
 export default function EventosPage() {
   const [cursor, setCursor] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
@@ -340,10 +347,14 @@ export default function EventosPage() {
                         10
                       );
 
-                      // Comparamos fecha Y turno (usando 'mealTime' que viene del back)
+                      // Convertir mealTime del backend (mayúsculas) al label del frontend
+                      const normalizedMealTime =
+                        MEAL_TIME_MAP[r.mealTime] || r.mealTime;
+
+                      // Comparamos fecha Y turno (normalizando mealTime del backend)
                       return (
                         backendDate === selectedDateString &&
-                        r.mealTime === slot.label
+                        normalizedMealTime === slot.label
                       );
                     });
 
