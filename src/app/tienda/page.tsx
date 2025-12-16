@@ -51,6 +51,7 @@ export default function StorePage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      syncWallet();
       setIsLoading(true);
 
       try {
