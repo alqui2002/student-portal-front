@@ -1,6 +1,7 @@
+import { jwtDecode } from "jwt-decode";
 import { apiFetch } from "./client";
 
-const userId = "00debe32-abd2-45a8-bece-3d3b752fa140";
+const userId = getUserIdFromToken();
 
 export async function getEventsByUser() {
   return apiFetch(`/calendar/user/${userId}`);
@@ -8,4 +9,18 @@ export async function getEventsByUser() {
 
 export async function syncEvents() {
   return apiFetch(`/calendar/sync`);
+}
+
+function getUserIdFromToken(): string {
+  if (typeof document === "undefined") return "";
+
+  const token = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("JWT="))
+    ?.split("=")[1];
+
+  if (!token) throw new Error("No hay sesión activa");
+
+  const decoded: any = jwtDecode(token);
+  return decoded.sub;
 }
