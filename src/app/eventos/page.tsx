@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarIcon,
@@ -26,7 +25,11 @@ import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/loader";
 
 // --- IMPORTS DE APIs ---
-import { getEventsByUser, syncEvents } from "@/lib/api/calendar";
+import {
+  getEventsByUser,
+  getExamEventsByUser,
+  syncEvents,
+} from "@/lib/api/calendar";
 import { getUserDiningReservations } from "@/lib/api/dining"; // ✅ Nuevo import
 import { DiningReservation } from "@/lib/api/types"; // ✅ Nuevo import
 
@@ -140,44 +143,43 @@ export default function EventosPage() {
   const [activeEvent, setActiveEvent] = useState<UniEvent | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
+  async function fetchData() {
+    try {
+      setLoading(true);
 
-        // ✅ 2. Llamada en paralelo a Eventos y Comedor
-        const [eventsData, diningData] = await Promise.all([
-          getEventsByUser(),
-          getUserDiningReservations(),
-        ]);
+      const [eventsData, diningData, examEvents] = await Promise.all([
+        getEventsByUser(),
+        getUserDiningReservations(),
+        getExamEventsByUser(),
+      ]);
 
-        console.log("📅 Eventos crudos:", eventsData);
-        console.log("🍽️ Reservas Comedor:", diningData);
+      // Normalizar eventos del calendario
+      const fixed: UniEvent[] = (eventsData as any[]).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        date: item.date?.slice(0, 10),
+        time: new Date(item.startDateTime).toLocaleTimeString("es-AR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        type: (item.eventType?.toLowerCase?.() ?? "evento") as EventType,
+      }));
 
-        // Normalizar Eventos
-        const fixed = (eventsData as any[]).map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          date: item.date?.slice(0, 10),
-          time: new Date(item.startDateTime).toLocaleTimeString("es-AR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          type: (item.eventType?.toLowerCase?.() ?? "event") as EventType,
-        }));
+      // 🔥 ACÁ estaba el faltante
+      setEvents([...fixed, ...(examEvents ?? [])]);
 
-        setEvents(fixed);
-
-        // ✅ 3. Guardar Reservas (validando que sea array)
-        setReservations(Array.isArray(diningData) ? diningData : []);
-      } catch (err) {
-        console.error("❌ Error al traer datos:", err);
-      } finally {
-        setLoading(false);
-      }
+      setReservations(Array.isArray(diningData) ? diningData : []);
+    } catch (err) {
+      console.error("❌ Error al traer datos:", err);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, []);
+  }
+
+  fetchData();
+}, []);
+
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, UniEvent[]>();
