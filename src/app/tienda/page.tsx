@@ -51,6 +51,7 @@ type WalletTransfer = {
   amount: string;
   description?: string;
   created_at: string;
+  type: "TRANSFER" | "RESERVA" | "SANCION" | "INSCRIPCION_EVENTO";
 };
 
 /* ===================== COMPONENTE ===================== */
@@ -60,7 +61,13 @@ export default function StorePage() {
   const [history, setHistory] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Compra | null>(null);
-  type FilterType = "ALL" | "PURCHASES" | "TRANSFERS";
+  type FilterType =
+    | "ALL"
+    | "PURCHASES"
+    | "TRANSFERS"
+    | "DINNING"
+    | "SANCION"
+    | "EVENTO";
 
   const [filter, setFilter] = useState<FilterType>("ALL");
 
@@ -118,8 +125,61 @@ export default function StorePage() {
               t.from_wallet_uuid === myWalletId
           )
           .map(t => {
-            const incoming = t.to_wallet_uuid === myWalletId;
             const amount = Number(t.amount);
+
+            // 🔵 RESERVA DE COMEDOR
+            if (t.type === "RESERVA") {
+              return {
+                id: t.uuid,
+                date: t.created_at,
+                total: -amount,
+                product: [
+                  {
+                    name: "RESERVA",
+                    description: t.description ?? "Pago de reserva",
+                    quantity: 1,
+                    subtotal: amount,
+                  },
+                ],
+              };
+            }
+
+            // 🔴 SANCIÓN
+            if (t.type === "SANCION") {
+              return {
+                id: t.uuid,
+                date: t.created_at,
+                total: -amount,
+                product: [
+                  {
+                    name: "SANCION",
+                    description: t.description ?? "Sanción aplicada",
+                    quantity: 1,
+                    subtotal: amount,
+                  },
+                ],
+              };
+            }
+
+            // 🟣 INSCRIPCIÓN A EVENTO
+            if (t.type === "INSCRIPCION_EVENTO") {
+              return {
+                id: t.uuid,
+                date: t.created_at,
+                total: -amount,
+                product: [
+                  {
+                    name: "INSCRIPCION_EVENTO",
+                    description: t.description ?? "Inscripción a evento",
+                    quantity: 1,
+                    subtotal: amount,
+                  },
+                ],
+              };
+            }
+
+            // 🟢 TRANSFERENCIA
+            const incoming = t.to_wallet_uuid === myWalletId;
             const signed = incoming ? amount : -amount;
 
             return {
@@ -182,8 +242,24 @@ export default function StorePage() {
 
   /* ===================== HELPERS ===================== */
 
+  /* ===================== HELPERS ===================== */
+
   const isTransfer = (c: Compra) =>
     c.product.length === 1 && c.product[0].name.startsWith("Transferencia");
+
+  const isDinningReservation = (c: Compra) =>
+    c.product.some(p => p.name === "RESERVA");
+
+  const isSanction = (c: Compra) => c.product.some(p => p.name === "SANCION");
+
+  const isEventEnrollment = (c: Compra) =>
+    c.product.some(p => p.name === "INSCRIPCION_EVENTO");
+
+  const isStorePurchase = (c: Compra) =>
+    !isTransfer(c) &&
+    !isDinningReservation(c) &&
+    !isSanction(c) &&
+    !isEventEnrollment(c);
 
   const formatMoney = (n: number) =>
     new Intl.NumberFormat("es-AR", {
@@ -192,11 +268,14 @@ export default function StorePage() {
       minimumFractionDigits: 0,
     }).format(n);
 
-  if (loading) return <Loader message="Cargando tienda..." />;
   const filteredHistory = history.filter(h => {
     if (filter === "ALL") return true;
-    if (filter === "PURCHASES") return !isTransfer(h);
+    if (filter === "PURCHASES") return isStorePurchase(h);
     if (filter === "TRANSFERS") return isTransfer(h);
+    if (filter === "DINNING") return isDinningReservation(h);
+    if (filter === "SANCION") return isSanction(h);
+    if (filter === "EVENTO") return isEventEnrollment(h);
+
     return true;
   });
 
@@ -279,6 +358,28 @@ export default function StorePage() {
         >
           Transferencias
         </Button>
+
+        <Button
+          variant={filter === "DINNING" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("DINNING")}
+        >
+          Reservas de comedor
+        </Button>
+        <Button
+          variant={filter === "SANCION" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("SANCION")}
+        >
+          Pagos de sanciones
+        </Button>
+        <Button
+          variant={filter === "EVENTO" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("EVENTO")}
+        >
+          Inscripción a eventos
+        </Button>
       </div>
 
       {/* ===== HISTORIAL ===== */}
@@ -294,8 +395,17 @@ export default function StorePage() {
             >
               <div>
                 <p className="font-semibold">
-                  {isTransfer(h) ? h.product[0].name : "Compra de tienda"}
+                  {isTransfer(h)
+                    ? h.product[0].name
+                    : isDinningReservation(h)
+                      ? "Reserva de comedor"
+                      : isSanction(h)
+                        ? "Sanción"
+                        : isEventEnrollment(h)
+                          ? "Inscripción a evento"
+                          : "Compra de tienda"}
                 </p>
+
                 <p className="text-sm text-gray-500">
                   {new Date(h.date).toLocaleDateString("es-AR")}
                 </p>
