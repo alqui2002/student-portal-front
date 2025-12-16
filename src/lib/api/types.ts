@@ -81,6 +81,7 @@ export interface AttendanceRecord {
 export interface CourseGrades {
   firstExam?: number | null;
   secondExam?: number | null;
+  recuExam?: number | null;
   finalExam?: number | null;
 }
 

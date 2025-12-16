@@ -127,6 +127,7 @@ export default function CursoDetallePage() {
 
   const firstExamValue = grades?.firstExam;
   const secondExamValue = grades?.secondExam;
+  const recuExamValue = grades?.recuExam;
   const finalExamValue = grades?.finalExam;
 
   return (
@@ -352,6 +353,25 @@ export default function CursoDetallePage() {
                         {secondExamValue >= 4 ? "Aprobado" : "Desaprobado"}
                       </Badge>
                     )}
+                </td>
+              </tr>
+              <tr className="border-l border-r border-b">
+                <td className="p-2 pl-8">Recuperatorio</td>
+
+                <td className="p-2">{recuExamValue ?? "—"}</td>
+                <td className="p-2">
+                  {recuExamValue !== null && recuExamValue !== undefined && (
+                    <Badge
+                      variant="secondary"
+                      className={`font-light ${
+                        recuExamValue < 4
+                          ? "border border-red-500 text-red-700"
+                          : ""
+                      }`}
+                    >
+                      {recuExamValue >= 4 ? "Aprobado" : "Desaprobado"}
+                    </Badge>
+                  )}
                 </td>
               </tr>
               <tr className="border-l border-r border-b">
