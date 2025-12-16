@@ -57,10 +57,16 @@ export async function loadBalance(depositData: CardDetails) {
   const userId = getUserIdFromToken();
 
   const apiRequestBody = {
+    // Datos de la tarjeta (se mantienen igual)
     cardNumber: depositData.cardNumber.replace(/\s/g, ""),
     expiration: depositData.expiration,
     cvv: depositData.cvv,
-    amount: String(depositData.amount),
+
+    // Datos requeridos por el CORE
+    amount: depositData.amount, // Enviamos el número directo (ej: 1000) en vez de String
+    type: "CARGA_DE_SALDO", // <--- EL CAMBIO IMPORTANTE (Todo mayúsculas)
+    description: "Carga de saldo",
+    currency: "ARG", // Agregamos la moneda por seguridad según el curl
   };
 
   return apiFetch(`/account/${userId}/transactions`, {

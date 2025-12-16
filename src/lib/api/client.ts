@@ -4,19 +4,24 @@ const CORE_LOGIN_URL = "https://core-frontend-2025-02.netlify.app";
 
 export async function apiFetch<T = unknown>(
   path: string,
+
   options: RequestInit = {}
 ): Promise<T> {
   const token = getJwtFromBrowser();
 
   const headers = {
     "Content-Type": "application/json",
+
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+
     ...(options.headers || {}),
   };
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+
     headers,
+
     credentials: "include",
   });
 
@@ -36,6 +41,7 @@ export async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     console.error("Error:", res.status, await res.text());
+
     throw new Error("API Error");
   }
 
@@ -44,7 +50,9 @@ export async function apiFetch<T = unknown>(
 
 function getJwtFromBrowser() {
   if (typeof document === "undefined") return null;
+
   const match = document.cookie.split("; ").find(row => row.startsWith("JWT="));
+
   return match ? match.split("=")[1] : null;
 }
 
