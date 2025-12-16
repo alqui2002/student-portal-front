@@ -189,14 +189,14 @@ export default function InscripcionesPage() {
                 </span>
                 <span className="text-sm font-light">{totalSeleccionadas}</span>
               </div>
-              <div className="flex justify-between mt-6">
+              {/* <div className="flex justify-between mt-6">
                 <span className="text-sm font-light">Total compra</span>
                 <span className="text-sm font-light">
                   {totalSeleccionadas > 0
                     ? `${totalSeleccionadas * 320000}$`
                     : "-"}
                 </span>
-              </div>
+              </div> */}
               <button
                 disabled={totalSeleccionadas === 0}
                 className="text-base font-light text-white bg-[#6F97F0] w-full mt-5 p-2 rounded-sm disabled:opacity-50"
