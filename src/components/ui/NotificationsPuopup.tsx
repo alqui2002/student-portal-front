@@ -42,7 +42,6 @@ function getCourseNameFromEnrollments(notif: any, enrollments: any[]) {
   if (!commissionId) return null;
 
   const enrollment = enrollments.find(e => e.commission?.id === commissionId);
-
   return enrollment?.course?.name ?? null;
 }
 
@@ -62,11 +61,49 @@ function buildCourseLinkFromEnrollments(notif: any, enrollments: any[]) {
   if (!commissionId) return null;
 
   const enrollment = enrollments.find(e => e.commission?.id === commissionId);
-
   const courseId = enrollment?.course?.id;
-  if (!courseId) return null;
 
-  return `/misCursos/${courseId}?commissionId=${commissionId}`;
+  return courseId
+    ? `/misCursos/${courseId}?commissionId=${commissionId}`
+    : null;
+}
+
+/* -------- SANCTIONS -------- */
+
+function buildSanctionTitle(notif: any) {
+  const status = notif.metadata?.status;
+
+  if (status === "PAID") {
+    return "✅ Sanción regularizada";
+  }
+
+  return "📚 Tenés sanciones pendientes en Biblioteca";
+}
+
+function buildSanctionMessage(notif: any) {
+  const status = notif.metadata?.status;
+  const amount = notif.metadata?.amount;
+
+  if (status === "PAID") {
+    return amount
+      ? `La sanción fue abonada correctamente por $${amount}.`
+      : "La sanción fue abonada correctamente.";
+  }
+
+  return "Registramos una sanción pendiente. Ingresá a Biblioteca para regularizarla.";
+}
+
+function buildLibraryLink() {
+  if (typeof document === "undefined") return null;
+
+  const token = document.cookie
+    .split("; ")
+    .find(c => c.startsWith("JWT="))
+    ?.split("=")[1];
+
+  if (!token) return null;
+
+  return `https://biblioteca-uade.vercel.app/penalties?JWT=${token}`;
 }
 
 /* ---------------- COMPONENT ---------------- */
@@ -90,7 +127,7 @@ export default function NotificationPopup() {
 
         const validNotif = Array.isArray(notifs)
           ? notifs.find(
-              (n: any) => n && !n.title?.toLowerCase().includes("transferencia")
+              n => n && !n.title?.toLowerCase().includes("transferencia")
             )
           : null;
 
@@ -106,13 +143,12 @@ export default function NotificationPopup() {
     fetchData();
   }, []);
 
-  // ⛔ GUARD CORRECTO
   if (!notif) return null;
 
-  // ✅ DERIVADOS SEGUROS
   const courseName = getCourseNameFromEnrollments(notif, enrollments);
   const examSubtitle = buildExamSubtitle(notif);
   const courseLink = buildCourseLinkFromEnrollments(notif, enrollments);
+  const libraryLink = notif.type === "sanction" ? buildLibraryLink() : null;
 
   async function handleClose() {
     await patchReadNotification(notif.id);
@@ -126,11 +162,17 @@ export default function NotificationPopup() {
           <AlertDialogTitle className="text-lg font-semibold text-black">
             {notif.type === "exam" && courseName
               ? `Tienes una nueva nota en ${courseName}`
-              : notif.title}
+              : notif.type === "sanction"
+                ? buildSanctionTitle(notif)
+                : notif.title}
           </AlertDialogTitle>
 
           <AlertDialogDescription className="text-gray-700 mt-2">
-            {examSubtitle ?? notif.message}
+            {notif.type === "exam"
+              ? (examSubtitle ?? notif.message)
+              : notif.type === "sanction"
+                ? buildSanctionMessage(notif)
+                : notif.message}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -144,6 +186,18 @@ export default function NotificationPopup() {
               className="bg-[#6F97F0] text-white px-4 py-2 rounded-md hover:bg-[#5c7fe3]"
             >
               Ver materia
+            </AlertDialogAction>
+          )}
+
+          {libraryLink && (
+            <AlertDialogAction
+              onClick={() => {
+                handleClose();
+                window.open(libraryLink, "_blank");
+              }}
+              className="bg-[#6F97F0] text-white px-4 py-2 rounded-md hover:bg-[#5c7fe3]"
+            >
+              Ver Biblioteca
             </AlertDialogAction>
           )}
 
