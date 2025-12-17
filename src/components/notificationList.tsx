@@ -7,10 +7,40 @@ import { getAllNotificationsByUser } from "@/lib/api/notifs";
 import { getEnrollmentsByUser } from "@/lib/api/enrollments";
 import type { NotificationData } from "@/lib/api/types";
 
-type Notification = NotificationData;
+/* ------------------------------------------------------------------ */
+/* TYPES */
+/* ------------------------------------------------------------------ */
+
+type Notification = UINotification;
 type Tab = "todos" | "examenes" | "eventos" | "sanciones";
 
-/* ---------------- HELPERS ---------------- */
+/* ------------------------------------------------------------------ */
+/* NORMALIZERS */
+/* ------------------------------------------------------------------ */
+
+function normalizeType(type?: string) {
+  switch (type) {
+    case "exam":
+    case "examen":
+      return "exam";
+    case "sancion":
+    case "sanction":
+      return "sancion";
+    case "evento":
+    case "event":
+      return "evento";
+    default:
+      return "general";
+  }
+}
+
+function getNotificationDate(n: any): string | undefined {
+  return n.createdAt || n.date;
+}
+
+/* ------------------------------------------------------------------ */
+/* HELPERS */
+/* ------------------------------------------------------------------ */
 
 function getJWT() {
   if (typeof document === "undefined") return null;
@@ -39,21 +69,20 @@ function isTomorrowUTC(dateString?: string) {
 
 const timeAgo = (date?: string) => {
   if (!date) return "";
-  const diff = new Date().getTime() - new Date(date).getTime();
+  const diff = Date.now() - new Date(date).getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
   if (hours < 1) return "Hace minutos";
   return `Hace ${hours} horas`;
 };
 
-const getBadgeProps = (type: Notification["type"]) => {
+const getBadgeProps = (rawType?: string) => {
+  const type = normalizeType(rawType);
+
   switch (type) {
     case "exam":
-    case "examen":
       return { text: "Exámenes", class: "bg-[#6F97F0] text-white" };
     case "sancion":
-    case "sanction":
       return { text: "Sanción", class: "bg-[#6E2F2C] text-white" };
-    case "event":
     case "evento":
       return { text: "Evento", class: "bg-[#9A6D38] text-white" };
     default:
@@ -61,9 +90,13 @@ const getBadgeProps = (type: Notification["type"]) => {
   }
 };
 
-// 👇 misma lógica que popup: metadata.courseId = commissionId
+/* ------------------------------------------------------------------ */
+/* EXAMS LINK */
+/* ------------------------------------------------------------------ */
+
 function buildExamLinkFromEnrollments(notif: any, enrollments: any[]) {
-  if (!notif || (notif.type !== "exam" && notif.type !== "examen")) return null;
+  const type = normalizeType(notif.type);
+  if (type !== "exam") return "/misCursos";
 
   const commissionId = notif.metadata?.courseId;
   if (!commissionId) return "/misCursos";
@@ -78,28 +111,36 @@ function buildExamLinkFromEnrollments(notif: any, enrollments: any[]) {
   return `/misCursos/${courseId}?commissionId=${commissionId}`;
 }
 
-/* ---------------- ITEM ---------------- */
+/* ------------------------------------------------------------------ */
+/* ITEM */
+/* ------------------------------------------------------------------ */
+type UINotification = NotificationData & {
+  metadata?: Record<string, any>;
+  createdAt?: string;
+  date?: string;
+};
 
 const NotificationItem: React.FC<{
   notification: Notification;
   enrollments: any[];
 }> = ({ notification, enrollments }) => {
   const jwt = getJWT();
+  const type = normalizeType(notification.type);
+  const date = getNotificationDate(notification);
 
   let title = notification.title;
   let message = notification.message || (notification as any).description;
   let link = "/";
   let context = "Notificación";
 
-  // EXAMS (✅ link correcto)
-  if (notification.type === "exam" || notification.type === "examen") {
+  /* ---------------- EXAMS ---------------- */
+  if (type === "exam") {
     context = "Mis Cursos";
-    link =
-      buildExamLinkFromEnrollments(notification, enrollments) || "/misCursos";
+    link = buildExamLinkFromEnrollments(notification, enrollments);
   }
 
-  // SANCTIONS
-  if (notification.type === "sancion" || notification.type === "sanction") {
+  /* ---------------- SANCTIONS ---------------- */
+  if (type === "sancion") {
     context = "Biblioteca";
     link = jwt
       ? `https://biblioteca-uade.vercel.app/penalties?JWT=${jwt}`
@@ -115,9 +156,9 @@ const NotificationItem: React.FC<{
     }
   }
 
-  // EVENTS (solo mañana)
-  if (notification.type === "event" || notification.type === "evento") {
-    if (!isTomorrowUTC(notification.createdAt)) return null;
+  /* ---------------- EVENTS (ONLY TOMORROW) ---------------- */
+  if (type === "evento") {
+    if (!isTomorrowUTC(date)) return null;
 
     title = `🎓 Evento mañana: ${notification.title}`;
     message = notification.message ?? "Tenés un evento programado para mañana.";
@@ -128,8 +169,7 @@ const NotificationItem: React.FC<{
   }
 
   const { text, class: badgeClass } = getBadgeProps(notification.type);
-
-  const isExternal = link.startsWith("http://") || link.startsWith("https://");
+  const isExternal = link.startsWith("http");
 
   return (
     <a
@@ -158,16 +198,16 @@ const NotificationItem: React.FC<{
             </div>
           </div>
 
-          <div className="text-xs text-gray-400 mt-1">
-            {timeAgo(notification.createdAt)}
-          </div>
+          <div className="text-xs text-gray-400 mt-1">{timeAgo(date)}</div>
         </div>
       </div>
     </a>
   );
 };
 
-/* ---------------- LIST ---------------- */
+/* ------------------------------------------------------------------ */
+/* LIST */
+/* ------------------------------------------------------------------ */
 
 export default function NotificationList() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -184,15 +224,15 @@ export default function NotificationList() {
 
         const clean = Array.isArray(data)
           ? data.filter(n => {
-              const t = `${n.title ?? ""} ${n.message ?? ""}`.toLowerCase();
-              return !t.includes("transferencia");
+              const text = `${n.title ?? ""} ${n.message ?? ""}`.toLowerCase();
+              return !text.includes("transferencia");
             })
           : [];
 
         setNotifications(clean);
         setEnrollments(Array.isArray(enrolls) ? enrolls : []);
       } catch (e) {
-        console.error("❌ Error cargando notificaciones/enrollments:", e);
+        console.error("❌ Error cargando notificaciones:", e);
       }
     }
 
@@ -200,31 +240,28 @@ export default function NotificationList() {
   }, []);
 
   const filtered = notifications.filter(n => {
+    const type = normalizeType(n.type);
+    const date = getNotificationDate(n);
+
     if (activeTab === "todos") return true;
-    if (activeTab === "examenes")
-      return n.type === "exam" || n.type === "examen";
-    if (activeTab === "sanciones")
-      return n.type === "sancion" || n.type === "sanction";
+    if (activeTab === "examenes") return type === "exam";
+    if (activeTab === "sanciones") return type === "sancion";
     if (activeTab === "eventos")
-      return (
-        (n.type === "event" || n.type === "evento") &&
-        isTomorrowUTC(n.createdAt)
-      );
+      return type === "evento" && isTomorrowUTC(date);
+
     return false;
   });
 
   const counts = {
     todos: notifications.length,
-    examenes: notifications.filter(
-      n => n.type === "exam" || n.type === "examen"
-    ).length,
-    sanciones: notifications.filter(
-      n => n.type === "sancion" || n.type === "sanction"
-    ).length,
+    examenes: notifications.filter(n => normalizeType(n.type) === "exam")
+      .length,
+    sanciones: notifications.filter(n => normalizeType(n.type) === "sancion")
+      .length,
     eventos: notifications.filter(
       n =>
-        (n.type === "event" || n.type === "evento") &&
-        isTomorrowUTC(n.createdAt)
+        normalizeType(n.type) === "evento" &&
+        isTomorrowUTC(getNotificationDate(n))
     ).length,
   };
 
