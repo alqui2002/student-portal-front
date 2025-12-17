@@ -22,6 +22,9 @@ export async function getEventsByUser() {
   return apiFetch(`/calendar/user/${userId}`);
 }
 
+
 export async function syncEvents() {
-  return apiFetch(`/calendar/sync`);
+  return apiFetch(`/calendar/sync`, {
+    method: "POST",
+  });
 }
