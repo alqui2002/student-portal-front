@@ -144,9 +144,6 @@ export default function EventosPage() {
       try {
         setLoading(true);
 
-        await syncEvents();
-
-
         // ✅ 2. Llamada en paralelo a Eventos y Comedor
         const [eventsData, diningData] = await Promise.all([
           getEventsByUser(),
