@@ -35,6 +35,8 @@ function getAssessmentLabel(type?: string) {
   }
 }
 
+/* -------- EXAMS -------- */
+
 function getCourseNameFromEnrollments(notif: any, enrollments: any[]) {
   if (!notif || notif.type !== "exam") return null;
 
@@ -42,6 +44,7 @@ function getCourseNameFromEnrollments(notif: any, enrollments: any[]) {
   if (!commissionId) return null;
 
   const enrollment = enrollments.find(e => e.commission?.id === commissionId);
+
   return enrollment?.course?.name ?? null;
 }
 
@@ -61,8 +64,8 @@ function buildCourseLinkFromEnrollments(notif: any, enrollments: any[]) {
   if (!commissionId) return null;
 
   const enrollment = enrollments.find(e => e.commission?.id === commissionId);
-  const courseId = enrollment?.course?.id;
 
+  const courseId = enrollment?.course?.id;
   return courseId
     ? `/misCursos/${courseId}?commissionId=${commissionId}`
     : null;
@@ -71,13 +74,9 @@ function buildCourseLinkFromEnrollments(notif: any, enrollments: any[]) {
 /* -------- SANCTIONS -------- */
 
 function buildSanctionTitle(notif: any) {
-  const status = notif.metadata?.status;
-
-  if (status === "PAID") {
-    return "✅ Sanción regularizada";
-  }
-
-  return "📚 Tenés sanciones pendientes en Biblioteca";
+  return notif.metadata?.status === "PAID"
+    ? "✅ Sanción regularizada"
+    : "📚 Tenés sanciones pendientes en Biblioteca";
 }
 
 function buildSanctionMessage(notif: any) {
@@ -86,7 +85,7 @@ function buildSanctionMessage(notif: any) {
 
   if (status === "PAID") {
     return amount
-      ? `La sanción fue abonada correctamente por $${amount}.`
+      ? `La sanción fue abonada correctamente.`
       : "La sanción fue abonada correctamente.";
   }
 
@@ -101,9 +100,61 @@ function buildLibraryLink() {
     .find(c => c.startsWith("JWT="))
     ?.split("=")[1];
 
-  if (!token) return null;
+  return token
+    ? `https://biblioteca-uade.vercel.app/penalties?JWT=${token}`
+    : null;
+}
 
-  return `https://biblioteca-uade.vercel.app/penalties?JWT=${token}`;
+/* -------- EVENTS -------- */
+function isTomorrow(dateString?: string) {
+  if (!dateString) return false;
+
+  const eventUTC = new Date(dateString);
+
+  const now = new Date();
+
+  // hoy en UTC (00:00)
+  const todayUTC = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  );
+
+  // mañana en UTC (00:00)
+  const tomorrowUTC = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1
+  );
+
+  const eventDayUTC = Date.UTC(
+    eventUTC.getUTCFullYear(),
+    eventUTC.getUTCMonth(),
+    eventUTC.getUTCDate()
+  );
+
+  return eventDayUTC === tomorrowUTC;
+}
+
+function buildEventTitle(notif: any) {
+  return `🎓 Evento mañana: ${notif.title}`;
+}
+
+function buildEventMessage(notif: any) {
+  return notif.message ?? "Tenés un evento programado para mañana.";
+}
+
+function buildEventLink() {
+  if (typeof document === "undefined") return null;
+
+  const token = document.cookie
+    .split("; ")
+    .find(c => c.startsWith("JWT="))
+    ?.split("=")[1];
+
+  return token
+    ? `https://desap2-eventos-front.onrender.com/#/?JWT=${token}`
+    : null;
 }
 
 /* ---------------- COMPONENT ---------------- */
@@ -126,9 +177,19 @@ export default function NotificationPopup() {
         setEnrollments(Array.isArray(enrolls) ? enrolls : []);
 
         const validNotif = Array.isArray(notifs)
-          ? notifs.find(
-              n => n && !n.title?.toLowerCase().includes("transferencia")
-            )
+          ? notifs.find((n: any) => {
+              if (!n || n.title?.toLowerCase().includes("transferencia")) {
+                return false;
+              }
+
+              if (n.type === "exam" || n.type === "sanction") return true;
+
+              if (n.type === "event") {
+                return isTomorrow(n.createdAt);
+              }
+
+              return false;
+            })
           : null;
 
         if (validNotif) {
@@ -149,6 +210,7 @@ export default function NotificationPopup() {
   const examSubtitle = buildExamSubtitle(notif);
   const courseLink = buildCourseLinkFromEnrollments(notif, enrollments);
   const libraryLink = notif.type === "sanction" ? buildLibraryLink() : null;
+  const eventLink = notif.type === "event" ? buildEventLink() : null;
 
   async function handleClose() {
     await patchReadNotification(notif.id);
@@ -157,14 +219,16 @@ export default function NotificationPopup() {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="max-w-[420px] rounded-xl shadow-lg bg-white">
+      <AlertDialogContent className="max-w-[420px] rounded-xl bg-white shadow-lg">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-lg font-semibold text-black">
             {notif.type === "exam" && courseName
               ? `Tienes una nueva nota en ${courseName}`
               : notif.type === "sanction"
                 ? buildSanctionTitle(notif)
-                : notif.title}
+                : notif.type === "event"
+                  ? buildEventTitle(notif)
+                  : notif.title}
           </AlertDialogTitle>
 
           <AlertDialogDescription className="text-gray-700 mt-2">
@@ -172,7 +236,9 @@ export default function NotificationPopup() {
               ? (examSubtitle ?? notif.message)
               : notif.type === "sanction"
                 ? buildSanctionMessage(notif)
-                : notif.message}
+                : notif.type === "event"
+                  ? buildEventMessage(notif)
+                  : notif.message}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -183,7 +249,7 @@ export default function NotificationPopup() {
                 handleClose();
                 router.push(courseLink);
               }}
-              className="bg-[#6F97F0] text-white px-4 py-2 rounded-md hover:bg-[#5c7fe3]"
+              className="bg-[#6F97F0] text-white"
             >
               Ver materia
             </AlertDialogAction>
@@ -195,15 +261,27 @@ export default function NotificationPopup() {
                 handleClose();
                 window.open(libraryLink, "_blank");
               }}
-              className="bg-[#6F97F0] text-white px-4 py-2 rounded-md hover:bg-[#5c7fe3]"
+              className="bg-[#6F97F0] text-white"
             >
               Ver Biblioteca
             </AlertDialogAction>
           )}
 
+          {eventLink && (
+            <AlertDialogAction
+              onClick={() => {
+                handleClose();
+                window.open(eventLink, "_blank");
+              }}
+              className="bg-[#6F97F0] text-white"
+            >
+              Ver evento
+            </AlertDialogAction>
+          )}
+
           <AlertDialogAction
             onClick={handleClose}
-            className="bg-gray-200 text-black px-4 py-2 rounded-md hover:bg-gray-300"
+            className="bg-gray-200 text-black"
           >
             Entendido
           </AlertDialogAction>
