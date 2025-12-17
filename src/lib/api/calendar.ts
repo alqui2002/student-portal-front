@@ -32,6 +32,7 @@ export async function getEventsByUser() {
 
 
 export async function syncEvents() {
+  console.log("Syncing events for user:", userId);
   return apiFetch(`/calendar/sync`, {
     method: "POST",
   headers: {
