@@ -23,3 +23,12 @@ export async function getEventsByUser() {
 export async function syncEvents() {
   return apiFetch(`/calendar/sync`);
 }
+
+export async function getExams(commissionIds: string[]) {
+  return apiFetch(`/calendar/classes-by-commissions`, {
+    method: "POST",
+    body: JSON.stringify({
+      commissionIds,
+    }),
+  });
+}

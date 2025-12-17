@@ -22,15 +22,26 @@ import {
   AlertDialogDescription,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { getEnrollmentsByUser } from "@/lib/api/enrollments";
+
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/loader";
 
 // --- IMPORTS DE APIs ---
-import { getEventsByUser, syncEvents } from "@/lib/api/calendar";
+import { getEventsByUser, getExams, syncEvents } from "@/lib/api/calendar";
 import { getUserDiningReservations } from "@/lib/api/dining"; // ✅ Nuevo import
 import { DiningReservation } from "@/lib/api/types"; // ✅ Nuevo import
 
 const PAGE_TITLE = "Calendario Académico";
+
+function getCourseNameFromEnrollments(
+  commissionId: string,
+  enrollments: any[]
+): string {
+  const enrollment = enrollments.find(e => e.commission?.id === commissionId);
+
+  return enrollment?.course?.name ?? "Materia";
+}
 
 type EventType = "examen" | "evento" | "extracurricular" | "holiday" | "class";
 type UniEvent = {
@@ -149,9 +160,58 @@ export default function EventosPage() {
           getEventsByUser(),
           getUserDiningReservations(),
         ]);
-
+        const enrollments = (await getEnrollmentsByUser()) as any[];
+        const inProgressCommissionIds = (enrollments as any[])
+          .filter(e => e.status === "in_progress")
+          .map(e => e.commission?.id)
+          .filter(Boolean); // por si alguno viene null
         console.log("📅 Eventos crudos:", eventsData);
         console.log("🍽️ Reservas Comedor:", diningData);
+        console.log("📚 Enrollments IN PROGRESS:", inProgressCommissionIds);
+        const classesByCommission = (await getExams(
+          inProgressCommissionIds
+        )) as any[];
+
+        const simplified = classesByCommission.flatMap(item =>
+          item.classes.map((cls: any) => ({
+            id_curso: cls.id_curso,
+            fecha_clase: cls.fecha_clase,
+            tipo: cls.tipo,
+          }))
+        );
+        const examTypes = ["parcial_1", "parcial_2", "recuperatorio", "final"];
+
+        const examsOnly = simplified.filter(item =>
+          examTypes.includes(item.tipo)
+        );
+        // a partir de aca
+        console.log("📝 Exámenes:", examsOnly);
+
+        const examEvents: UniEvent[] = examsOnly.map((exam: any) => {
+          const courseName = getCourseNameFromEnrollments(
+            exam.id_curso,
+            enrollments
+          );
+
+          const examLabel =
+            exam.tipo === "parcial_1"
+              ? "Parcial 1"
+              : exam.tipo === "parcial_2"
+                ? "Parcial 2"
+                : exam.tipo === "recuperatorio"
+                  ? "Recuperatorio"
+                  : "Final";
+
+          return {
+            id: `${exam.id_curso}-${exam.fecha_clase}-${exam.tipo}`,
+            type: "examen",
+            title: `${examLabel} – ${courseName}`,
+            date: exam.fecha_clase,
+            description: "Preparate para tu examen",
+
+            meta: exam.id_curso,
+          };
+        });
 
         // Normalizar Eventos
         const fixed = (eventsData as any[]).map((item: any) => ({
@@ -166,7 +226,7 @@ export default function EventosPage() {
           type: (item.eventType?.toLowerCase?.() ?? "event") as EventType,
         }));
 
-        setEvents(fixed);
+        setEvents([...fixed, ...examEvents]);
 
         // ✅ 3. Guardar Reservas (validando que sea array)
         setReservations(Array.isArray(diningData) ? diningData : []);
@@ -480,7 +540,7 @@ export default function EventosPage() {
                   }
                 >
                   {activeEvent.type === "examen"
-                    ? "examen" // Corregido typo anterior "examenen"
+                    ? "Examen" // Corregido typo anterior "examenen"
                     : activeEvent.type === "evento"
                       ? "Evento"
                       : activeEvent.type === "extracurricular"
@@ -493,12 +553,14 @@ export default function EventosPage() {
             </div>
 
             <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium min-w-[64px]">Horario</span>
-                <span className="text-gray-700">
-                  {activeEvent?.time ?? "—"}
-                </span>
-              </div>
+              {activeEvent?.type !== "examen" && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium min-w-[64px]">Horario</span>
+                  <span className="text-gray-700">
+                    {activeEvent?.time ?? "—"}
+                  </span>
+                </div>
+              )}
 
               <div>
                 <div className="font-medium mb-1">Descripción</div>
