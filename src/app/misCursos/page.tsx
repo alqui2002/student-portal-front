@@ -45,7 +45,7 @@ export default function MisCursosPage() {
         const inProgress = (data as any[]).filter(
           enrollment => enrollment.status === "in_progress"
         );
-
+        console.log("✅ Inscripciones en curso:", inProgress);
         setEnrollments(inProgress);
       } catch (err) {
         console.error("❌ Error al traer inscripciones:", err);
@@ -113,7 +113,7 @@ export default function MisCursosPage() {
                   pathname: `/misCursos/${enrollment.course.id}`,
                   query: { commissionId: enrollment.commission.id },
                 }}
-                key={enrollment.course.id}
+                key={enrollment.commission.id}
               >
                 <div className="cursor-pointer border rounded-xl bg-white space-y-1 hover:shadow-md transition-shadow duration-300">
                   <div className="flex flex-row items-center p-4 pr-6 rounded-t-xl justify-between bg-[#6F97F0]">
