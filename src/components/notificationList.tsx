@@ -7,16 +7,8 @@ import { getAllNotificationsByUser } from "@/lib/api/notifs";
 import { getEnrollmentsByUser } from "@/lib/api/enrollments";
 import type { NotificationData } from "@/lib/api/types";
 
-/* ------------------------------------------------------------------ */
-/* TYPES */
-/* ------------------------------------------------------------------ */
-
 type Notification = UINotification;
 type Tab = "todos" | "examenes" | "eventos" | "sanciones";
-
-/* ------------------------------------------------------------------ */
-/* NORMALIZERS */
-/* ------------------------------------------------------------------ */
 
 function normalizeType(type?: string) {
   switch (type) {
@@ -37,10 +29,6 @@ function normalizeType(type?: string) {
 function getNotificationDate(n: any): string | undefined {
   return n.createdAt || n.date;
 }
-
-/* ------------------------------------------------------------------ */
-/* HELPERS */
-/* ------------------------------------------------------------------ */
 
 function getJWT() {
   if (typeof document === "undefined") return null;
@@ -90,10 +78,6 @@ const getBadgeProps = (rawType?: string) => {
   }
 };
 
-/* ------------------------------------------------------------------ */
-/* EXAMS LINK */
-/* ------------------------------------------------------------------ */
-
 function buildExamLinkFromEnrollments(notif: any, enrollments: any[]) {
   const type = normalizeType(notif.type);
   if (type !== "exam") return "/misCursos";
@@ -111,9 +95,6 @@ function buildExamLinkFromEnrollments(notif: any, enrollments: any[]) {
   return `/misCursos/${courseId}?commissionId=${commissionId}`;
 }
 
-/* ------------------------------------------------------------------ */
-/* ITEM */
-/* ------------------------------------------------------------------ */
 type UINotification = NotificationData & {
   metadata?: Record<string, any>;
   createdAt?: string;
@@ -133,13 +114,11 @@ const NotificationItem: React.FC<{
   let link = "/";
   let context = "Notificación";
 
-  /* ---------------- EXAMS ---------------- */
   if (type === "exam") {
     context = "Mis Cursos";
     link = buildExamLinkFromEnrollments(notification, enrollments);
   }
 
-  /* ---------------- SANCTIONS ---------------- */
   if (type === "sancion") {
     context = "Biblioteca";
     link = jwt
@@ -156,7 +135,6 @@ const NotificationItem: React.FC<{
     }
   }
 
-  /* ---------------- EVENTS (ONLY TOMORROW) ---------------- */
   if (type === "evento") {
     if (!isTomorrowUTC(date)) return null;
 
@@ -204,10 +182,6 @@ const NotificationItem: React.FC<{
     </a>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* LIST */
-/* ------------------------------------------------------------------ */
 
 export default function NotificationList() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -274,7 +248,6 @@ export default function NotificationList() {
 
   return (
     <section className="bg-white w-full">
-      {/* TABS */}
       <div className="flex gap-8 border-b border-gray-200 mb-6">
         {tabs.map(tab => (
           <button
@@ -291,7 +264,6 @@ export default function NotificationList() {
         ))}
       </div>
 
-      {/* LIST */}
       <div className="grid gap-4">
         {filtered.map(n => (
           <NotificationItem

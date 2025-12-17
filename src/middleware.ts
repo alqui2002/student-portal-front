@@ -13,7 +13,6 @@ interface JWTPayload {
 export function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
 
-  // Redirigir la ruta raíz a /misCursos
   if (pathname === "/") {
     return NextResponse.redirect(new URL("/misCursos", req.url));
   }

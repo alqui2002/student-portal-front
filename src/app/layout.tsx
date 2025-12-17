@@ -19,7 +19,6 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const cookieStore = await cookies();
   const jwt = cookieStore.get("JWT")?.value;
-  console.log("JWT en layout:", jwt);
 
   return (
     <html lang="es" suppressHydrationWarning>

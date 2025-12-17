@@ -27,10 +27,9 @@ import { getEnrollmentsByUser } from "@/lib/api/enrollments";
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/ui/loader";
 
-// --- IMPORTS DE APIs ---
-import { getEventsByUser, getExams, syncEvents } from "@/lib/api/calendar";
-import { getUserDiningReservations } from "@/lib/api/dining"; // ✅ Nuevo import
-import { DiningReservation } from "@/lib/api/types"; // ✅ Nuevo import
+import { getEventsByUser, getExams } from "@/lib/api/calendar";
+import { getUserDiningReservations } from "@/lib/api/dining";
+import { DiningReservation } from "@/lib/api/types";
 
 const PAGE_TITLE = "Calendario Académico";
 
@@ -77,16 +76,6 @@ const fmtLong = new Intl.DateTimeFormat("es-AR", {
   year: "numeric",
   timeZone: TZ,
 });
-const fmtEvent = new Intl.DateTimeFormat("es-AR", {
-  day: "2-digit",
-  month: "long",
-  year: "numeric",
-  timeZone: TZ,
-});
-const fmtMonthOnly = new Intl.DateTimeFormat("es-AR", {
-  month: "long",
-  timeZone: TZ,
-});
 
 function monthHeader(year: number, monthIndex: number) {
   return `${cap(fmtMonth.format(new Date(year, monthIndex, 1)))} ${year}`;
@@ -131,7 +120,6 @@ const DINING_SLOTS: DiningSlot[] = [
   { label: "Merienda", from: "16:00", to: "20:00" },
 ];
 
-// Mapeo de valores del backend (mayúsculas) a labels del frontend
 const MEAL_TIME_MAP: Record<string, string> = {
   DESAYUNO: "Desayuno",
   ALMUERZO: "Almuerzo",
@@ -143,7 +131,6 @@ export default function EventosPage() {
   const [selected, setSelected] = useState(new Date());
 
   const [events, setEvents] = useState<UniEvent[]>([]);
-  // ✅ 1. Estado para guardar reservas del comedor
   const [reservations, setReservations] = useState<DiningReservation[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -155,7 +142,6 @@ export default function EventosPage() {
       try {
         setLoading(true);
 
-        // ✅ 2. Llamada en paralelo a Eventos y Comedor
         const [eventsData, diningData] = await Promise.all([
           getEventsByUser(),
           getUserDiningReservations(),
@@ -164,10 +150,8 @@ export default function EventosPage() {
         const inProgressCommissionIds = (enrollments as any[])
           .filter(e => e.status === "in_progress")
           .map(e => e.commission?.id)
-          .filter(Boolean); // por si alguno viene null
-        console.log("📅 Eventos crudos:", eventsData);
-        console.log("🍽️ Reservas Comedor:", diningData);
-        console.log("📚 Enrollments IN PROGRESS:", inProgressCommissionIds);
+          .filter(Boolean);
+
         const classesByCommission = (await getExams(
           inProgressCommissionIds
         )) as any[];
@@ -184,8 +168,6 @@ export default function EventosPage() {
         const examsOnly = simplified.filter(item =>
           examTypes.includes(item.tipo)
         );
-        // a partir de aca
-        console.log("📝 Exámenes:", examsOnly);
 
         const examEvents: UniEvent[] = examsOnly.map((exam: any) => {
           const courseName = getCourseNameFromEnrollments(
@@ -213,7 +195,6 @@ export default function EventosPage() {
           };
         });
 
-        // Normalizar Eventos
         const fixed = (eventsData as any[]).map((item: any) => ({
           id: item.id,
           title: item.title,
@@ -228,7 +209,6 @@ export default function EventosPage() {
 
         setEvents([...fixed, ...examEvents]);
 
-        // ✅ 3. Guardar Reservas (validando que sea array)
         setReservations(Array.isArray(diningData) ? diningData : []);
       } catch (err) {
         console.error("❌ Error al traer datos:", err);
@@ -265,7 +245,6 @@ export default function EventosPage() {
   return (
     <main>
       <div className="bg-[#f5f7fb] text-gray-900 min-h-[calc(100vh-64px)]">
-        {/* ENCABEZADO */}
         <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px] bg-white">
           <PanelLeft size={15} />
           <span className="text-muted-foreground">|</span>
@@ -378,7 +357,6 @@ export default function EventosPage() {
                 </div>
               </div>
 
-              {/* SECCIÓN COMEDOR DINÁMICA - CORREGIDA CON NOMBRES DE BACKEND */}
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="px-5 py-4 border-b">
                   <h3 className="text-[15px] font-semibold text-gray-700">
@@ -395,23 +373,17 @@ export default function EventosPage() {
                 </div>
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {DINING_SLOTS.map(slot => {
-                    // 1. Fecha seleccionada en string YYYY-MM-DD
                     const selectedDateString = toDateOnly(selected);
 
-                    // 2. BUSCAR RESERVA (LÓGICA ACTUALIZADA)
                     const reserva = reservations.find(r => {
-                      // El backend devuelve algo como "2025-12-15T00:00:00.000Z"
-                      // Cortamos los primeros 10 caracteres para obtener "2025-12-15"
                       const backendDate = String(r.reservationDate).slice(
                         0,
                         10
                       );
 
-                      // Convertir mealTime del backend (mayúsculas) al label del frontend
                       const normalizedMealTime =
                         MEAL_TIME_MAP[r.mealTime] || r.mealTime;
 
-                      // Comparamos fecha Y turno (normalizando mealTime del backend)
                       return (
                         backendDate === selectedDateString &&
                         normalizedMealTime === slot.label
@@ -438,7 +410,6 @@ export default function EventosPage() {
                           {slot.from} - {slot.to}
                         </div>
 
-                        {/* Indicador visual */}
                         <div
                           className={`text-xs font-bold mt-2 ${tieneReserva ? "text-green-600" : "text-gray-400"}`}
                         >
@@ -540,7 +511,7 @@ export default function EventosPage() {
                   }
                 >
                   {activeEvent.type === "examen"
-                    ? "Examen" // Corregido typo anterior "examenen"
+                    ? "Examen"
                     : activeEvent.type === "evento"
                       ? "Evento"
                       : activeEvent.type === "extracurricular"

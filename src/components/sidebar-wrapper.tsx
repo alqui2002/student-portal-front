@@ -1,4 +1,3 @@
-// src/components/sidebar-wrapper.tsx
 "use client";
 
 import { AppSidebar } from "@/components/app-sidebar";

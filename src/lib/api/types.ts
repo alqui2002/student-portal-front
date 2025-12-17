@@ -101,12 +101,11 @@ export interface SyncWalletResponse {
   balance: string;
 }
 
-// ACTUALIZADO PARA COINCIDIR CON EL BACKEND
 export interface DiningReservation {
   id: string;
   userId?: string;
-  reservationDate: string; // Antes era "date"
-  mealTime: "DESAYUNO" | "ALMUERZO" | "MERIENDA"; // El backend devuelve en mayúsculas
+  reservationDate: string;
+  mealTime: "DESAYUNO" | "ALMUERZO" | "MERIENDA";
   status: string;
   cost?: number | string;
   reservationId?: number;

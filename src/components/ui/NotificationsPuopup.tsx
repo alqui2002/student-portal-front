@@ -18,8 +18,6 @@ import {
 } from "@/lib/api/notifs";
 import { getEnrollmentsByUser } from "@/lib/api/enrollments";
 
-/* ---------------- HELPERS ---------------- */
-
 function getAssessmentLabel(type?: string) {
   switch (type) {
     case "PARCIAL_1":
@@ -34,8 +32,6 @@ function getAssessmentLabel(type?: string) {
       return "Evaluación";
   }
 }
-
-/* -------- EXAMS -------- */
 
 function getCourseNameFromEnrollments(notif: any, enrollments: any[]) {
   if (!notif || notif.type !== "exam") return null;
@@ -71,8 +67,6 @@ function buildCourseLinkFromEnrollments(notif: any, enrollments: any[]) {
     : null;
 }
 
-/* -------- SANCTIONS -------- */
-
 function buildSanctionTitle(notif: any) {
   return notif.metadata?.status === "PAID"
     ? "✅ Sanción regularizada"
@@ -105,7 +99,6 @@ function buildLibraryLink() {
     : null;
 }
 
-/* -------- EVENTS -------- */
 function isTomorrow(dateString?: string) {
   if (!dateString) return false;
 
@@ -156,8 +149,6 @@ function buildEventLink() {
     ? `https://desap2-eventos-front.onrender.com/#/?JWT=${token}`
     : null;
 }
-
-/* ---------------- COMPONENT ---------------- */
 
 export default function NotificationPopup() {
   const [open, setOpen] = useState(false);

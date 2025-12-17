@@ -9,9 +9,7 @@ import {
   UserCheck,
   Check,
   X,
-  Clock, // 👈 AGREGADO: Icono para Media Falta
-  Loader2,
-  CombineIcon,
+  Clock,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -79,8 +77,6 @@ export default function CursoDetallePage() {
           getCoursesGradesByCommissionID(commissionId),
         ]);
 
-        console.log(courseData);
-
         setCourseDetails(courseData);
         setAttendances(auxAttendance);
         setGrades(auxgrades);
@@ -103,8 +99,6 @@ export default function CursoDetallePage() {
 
       setPopUpBaja(false);
       setBajaConfirmada(true);
-
-      console.log("✅ Curso dado de baja correctamente");
     } catch (error) {
       console.error("❌ Error al dar de baja:", error);
       alert("Ocurrió un error al intentar darte de baja del curso.");
@@ -131,12 +125,10 @@ export default function CursoDetallePage() {
   const recuExamValue = grades?.recuExam;
   const finalExamValue = grades?.finalExam;
 
-  // --- 🔢 CÁLCULOS ACTUALIZADOS ---
   const countPresentes = attendances.filter(a => a.present === "P").length;
   const countAusentes = attendances.filter(a => a.present === "A").length;
   const countMediaFalta = attendances.filter(a => a.present === "M").length;
 
-  // Lógica de Faltas: Ausentes + (MediaFalta * 0.5)
   const totalFaltasCalculado = countAusentes + countMediaFalta * 0.5;
 
   return (
@@ -165,7 +157,6 @@ export default function CursoDetallePage() {
       </div>
 
       <div className="pl-8 pr-8">
-        {/* Header */}
         <div className="flex flex-row justify-between items-center pb-6 pt-4">
           <h1 className="text-2xl font-medium">
             {courseDetails?.course?.name}
@@ -282,16 +273,12 @@ export default function CursoDetallePage() {
               <span className="text-sm text-[#8C8C8C] font-light">
                 Asistencias:
               </span>
-              <span className="text-sm">
-                {countPresentes} {/* 👈 Muestra 'P' */}
-              </span>
+              <span className="text-sm">{countPresentes}</span>
             </div>
 
             <div className="flex justify-between items-center p-4 pb-5 pr-6 border-b">
               <span className="text-sm text-[#8C8C8C] font-light">Faltas:</span>
-              <span className="text-sm">
-                {totalFaltasCalculado} {/* 👈 Muestra 'A' + ('M'*0.5) */}
-              </span>
+              <span className="text-sm">{totalFaltasCalculado}</span>
             </div>
 
             <div className="flex justify-between items-center p-4 pb-5 pr-6">
@@ -425,14 +412,13 @@ export default function CursoDetallePage() {
                   minute: "2-digit",
                 });
 
-                // --- 🖌️ RENDERIZADO VISUAL ACTUALIZADO ---
                 let icon;
                 if (attendance.present === "P") {
-                  icon = <Check size={30} color="#6D9C66" />; // ✅ Presente
+                  icon = <Check size={30} color="#6D9C66" />;
                 } else if (attendance.present === "A") {
-                  icon = <X size={30} color="#D9534F" />; // ❌ Ausente
+                  icon = <X size={30} color="#D9534F" />;
                 } else if (attendance.present === "M") {
-                  icon = <Clock size={30} color="#F0AD4E" />; // 🕒 Media Falta (Naranja/Amarillo)
+                  icon = <Clock size={30} color="#F0AD4E" />;
                 }
 
                 return (
