@@ -243,7 +243,6 @@ export default function InscripcionesPage() {
                   </div>
 
                   <span className="font-light text-sm p-8 pt-3 block">
-                    Código: {curso.code}{" "}
                     {curso.correlatives?.length
                       ? `- Correlativas: ${curso.correlatives.map(c => c.name).join(", ")}`
                       : "- Correlativas: Ninguna"}
@@ -288,7 +287,10 @@ export default function InscripcionesPage() {
                                     Clase: {com.classRoom}
                                   </span>
                                   <span className="text-[#737373]">
-                                    Modalidad: {com.mode}
+                                    Modalidad:{" "}
+                                    {com.mode === "in person"
+                                      ? "Presencial"
+                                      : "Virtual"}
                                   </span>
                                 </div>
 
