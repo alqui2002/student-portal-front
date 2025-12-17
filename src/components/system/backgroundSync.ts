@@ -1,24 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-// import { syncPurchases, syncWallet } from "@/lib/api/tienda";
-// import { syncEvents } from "@/lib/api/calendar";
-// import { syncUserWithBackend } from "@/lib/api/user-sync";
-// import { syncCareer, syncCommissions, syncCouses } from "@/lib/api/core";
 
 export default function BackgroundSync() {
   useEffect(() => {
     const runSync = async () => {
       try {
-        await Promise.allSettled([
-          // syncCareer(),
-          // syncUserWithBackend(),
-          // syncWallet(),
-          // syncPurchases(),
-          // syncEvents(),
-          // syncCouses(),
-          // syncCommissions(),
-        ]);
+        await Promise.allSettled([]);
       } catch (err) {
         console.warn("⚠️ Error en background sync:", err);
       }

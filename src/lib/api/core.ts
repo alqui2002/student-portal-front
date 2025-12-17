@@ -7,12 +7,3 @@ const BASE_URL =
 export async function getUser() {
   return apiFetch("/account/me");
 }
-export async function syncCareer() {
-  return apiFetch("/careers/sync");
-}
-export async function syncCouses() {
-  return apiFetch("/courses/sync");
-}
-export async function syncCommissions() {
-  return apiFetch("/commissions/sync");
-}
