@@ -30,7 +30,6 @@ export async function syncUserWithBackend() {
     ?.split("=")[1];
 
   if (!token) {
-    console.log("No hay JWT en cookies, no se sincroniza usuario.");
     return;
   }
 
@@ -44,14 +43,10 @@ export async function syncUserWithBackend() {
       careerId: decoded.career.uuid,
     };
 
-    console.log("Sincronizando usuario con backend...", payload);
-
     await apiFetch("/users", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-
-    console.log("Usuario sincronizado correctamente.");
   } catch (error) {
     console.log("El usuario ya existe o hubo un error de sync:", error);
   }

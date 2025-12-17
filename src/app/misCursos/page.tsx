@@ -6,10 +6,6 @@ import {
   getAcademicHistoryByUser,
   getEnrollmentsByUser,
 } from "@/lib/api/enrollments";
-import {
-  getNotificationsByUser,
-  patchReadNotification,
-} from "@/lib/api/notifs";
 
 import {
   Breadcrumb,
@@ -45,7 +41,6 @@ export default function MisCursosPage() {
         const inProgress = (data as any[]).filter(
           enrollment => enrollment.status === "in_progress"
         );
-        console.log("✅ Inscripciones en curso:", inProgress);
         setEnrollments(inProgress);
       } catch (err) {
         console.error("❌ Error al traer inscripciones:", err);
@@ -60,9 +55,7 @@ export default function MisCursosPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const userId = 1;
         const data = await getAcademicHistoryByUser();
-
         sethistoricEnrollments(data as any[]);
       } catch (err) {
         console.error("❌ Error al traer inscripciones:", err);
@@ -71,6 +64,7 @@ export default function MisCursosPage() {
 
     fetchData();
   }, []);
+
   if (loading) return <Loader message="Cargando tus cursos..." />;
 
   const semestresUnicos = Array.from(
@@ -87,7 +81,7 @@ export default function MisCursosPage() {
   return (
     <main className=" w-full flex flex-col gap-8 bg-white">
       <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px]">
-        <PanelLeft size={15}></PanelLeft>
+        <PanelLeft size={15} />
         <span className="text-muted-foreground">|</span>
 
         <Breadcrumb>
@@ -129,7 +123,7 @@ export default function MisCursosPage() {
                       <Clock size={20} color="#757575" />
                       <span>
                         {enrollment.commission.days}
-                        {"   "}
+                        {"  "}
                         {enrollment.commission.startTime} -{" "}
                         {enrollment.commission.endTime}
                       </span>

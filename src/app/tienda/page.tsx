@@ -27,10 +27,7 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import Loader from "@/components/ui/loader";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-
-/* ===================== TIPOS ===================== */
 
 type Compra = {
   id: string;
@@ -54,8 +51,6 @@ type WalletTransfer = {
   type: "TRANSFER" | "RESERVA" | "SANCION" | "INSCRIPCION_EVENTO";
 };
 
-/* ===================== COMPONENTE ===================== */
-
 export default function StorePage() {
   const [balance, setBalance] = useState(0);
   const [history, setHistory] = useState<Compra[]>([]);
@@ -74,7 +69,6 @@ export default function StorePage() {
   const [spentThisMonth, setSpentThisMonth] = useState(0);
   const [loadedThisMonth, setLoadedThisMonth] = useState(0);
 
-  /* -------- Wallet desde JWT -------- */
   const token =
     typeof document !== "undefined"
       ? document.cookie
@@ -86,8 +80,6 @@ export default function StorePage() {
   const decoded: any = token ? jwtDecode(token) : null;
   const myWalletId: string | undefined = decoded?.wallet?.[0];
 
-  /* ===================== LOAD ===================== */
-
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -97,7 +89,6 @@ export default function StorePage() {
       let purchases: Compra[] = [];
       let transfers: Compra[] = [];
 
-      /* -------- COMPRAS -------- */
       try {
         const rawPurchases = await getPurchaseHistory();
         purchases = rawPurchases.map((p: any) => ({
@@ -113,7 +104,6 @@ export default function StorePage() {
         }));
       } catch {}
 
-      /* -------- TRANSFERENCIAS -------- */
       try {
         const rawTransfers =
           (await getWalletTransactions()) as WalletTransfer[];
@@ -127,7 +117,6 @@ export default function StorePage() {
           .map(t => {
             const amount = Number(t.amount);
 
-            // 🔵 RESERVA DE COMEDOR
             if (t.type === "RESERVA") {
               return {
                 id: t.uuid,
@@ -144,7 +133,6 @@ export default function StorePage() {
               };
             }
 
-            // 🔴 SANCIÓN
             if (t.type === "SANCION") {
               return {
                 id: t.uuid,
@@ -161,7 +149,6 @@ export default function StorePage() {
               };
             }
 
-            // 🟣 INSCRIPCIÓN A EVENTO
             if (t.type === "INSCRIPCION_EVENTO") {
               return {
                 id: t.uuid,
@@ -178,7 +165,6 @@ export default function StorePage() {
               };
             }
 
-            // 🟢 TRANSFERENCIA
             const incoming = t.to_wallet_uuid === myWalletId;
             const signed = incoming ? amount : -amount;
 
@@ -206,7 +192,6 @@ export default function StorePage() {
 
       setHistory(unified);
 
-      /* -------- TICKETS DEL MES -------- */
       const now = new Date();
       const m = now.getMonth();
       const y = now.getFullYear();
@@ -239,10 +224,6 @@ export default function StorePage() {
 
     load();
   }, [myWalletId]);
-
-  /* ===================== HELPERS ===================== */
-
-  /* ===================== HELPERS ===================== */
 
   const isTransfer = (c: Compra) =>
     c.product.length === 1 && c.product[0].name.startsWith("Transferencia");
@@ -279,11 +260,8 @@ export default function StorePage() {
     return true;
   });
 
-  /* ===================== UI ===================== */
-
   return (
     <main className="w-full flex flex-col bg-white">
-      {/* HEADER */}
       <div className="pt-9 pb-9 pl-8 flex items-center gap-4 border-b">
         <PanelLeft size={15} />
         <Breadcrumb>
@@ -296,7 +274,6 @@ export default function StorePage() {
       </div>
 
       <div className="p-8 flex-grow overflow-auto space-y-8">
-        {/* SALDO SECTION */}
         <section className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Saldo institucional</h1>
@@ -382,7 +359,6 @@ export default function StorePage() {
         </Button>
       </div>
 
-      {/* ===== HISTORIAL ===== */}
       <section className="border rounded-2xl p-6 ml-8 mr-8">
         <h2 className="text-2xl font-bold mb-4">Historial de movimientos</h2>
 
@@ -424,7 +400,6 @@ export default function StorePage() {
         </div>
       </section>
 
-      {/* ===== MODAL COMPRA ===== */}
       <AlertDialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
@@ -440,7 +415,6 @@ export default function StorePage() {
             </button>
           </AlertDialogHeader>
 
-          {/* 🔥 DESCRIPCIÓN OBLIGATORIA (ACCESIBILIDAD) */}
           <AlertDialogDescription asChild>
             <VisuallyHidden>
               Detalles completos de la compra seleccionada, incluyendo fecha,
@@ -450,7 +424,6 @@ export default function StorePage() {
 
           <Separator />
 
-          {/* FECHA + ENTIDAD */}
           <div className="py-2 space-y-3">
             <div className="text-base">
               <span className="font-bold text-gray-900">Fecha: </span>
@@ -468,7 +441,6 @@ export default function StorePage() {
 
           <Separator />
 
-          {/* LISTA DE PRODUCTOS */}
           <div className="py-2 space-y-4">
             <h3 className="text-lg font-bold">Detalles de pago</h3>
 
@@ -488,7 +460,6 @@ export default function StorePage() {
 
           <Separator />
 
-          {/* TOTAL */}
           <div className="py-2 flex justify-between">
             <span className="text-lg font-bold">Total</span>
             <span className="text-lg font-bold">

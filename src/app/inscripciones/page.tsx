@@ -96,12 +96,9 @@ export default function InscripcionesPage() {
               String(courseId),
               String(commissionId)
             );
-            console.log(
-              `✅ Inscripción creada: curso ${courseId}, comisión ${commissionId}`
-            );
           }
         } catch (err) {
-          console.error("❌ Error al traer datos del curso:", err);
+          console.error("❌ Error al inscribir:", err);
         } finally {
           setLoading(false);
         }
@@ -111,7 +108,7 @@ export default function InscripcionesPage() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Error desconocido al inscribirse";
-      console.error("❌ Error al inscribirse:", err);
+      console.error("❌ Error general:", err);
       alert(`Error: ${message}`);
     }
   };
@@ -123,7 +120,6 @@ export default function InscripcionesPage() {
 
   return (
     <main className="w-full flex flex-col gap-8 bg-white">
-      {/* === Breadcrumb === */}
       <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center border-b h-[53px] text-sm text-muted-foreground">
         <PanelLeft size={15} />
         <span>|</span>
@@ -189,21 +185,13 @@ export default function InscripcionesPage() {
                 </span>
                 <span className="text-sm font-light">{totalSeleccionadas}</span>
               </div>
-              {/* <div className="flex justify-between mt-6">
-                <span className="text-sm font-light">Total compra</span>
-                <span className="text-sm font-light">
-                  {totalSeleccionadas > 0
-                    ? `${totalSeleccionadas * 320000}$`
-                    : "-"}
-                </span>
-              </div> */}
+
               <button
                 disabled={totalSeleccionadas === 0}
                 className="text-base font-light text-white bg-[#6F97F0] w-full mt-5 p-2 rounded-sm disabled:opacity-50"
                 onClick={() => {
                   setinsConfirmada(true);
                   enrollInCourse();
-                  console.log(selectedCommissions);
                 }}
               >
                 Confirmar inscripción

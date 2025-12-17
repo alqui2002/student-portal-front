@@ -1,35 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
-import { syncPurchases, syncWallet } from "@/lib/api/tienda";
-import { syncEvents } from "@/lib/api/calendar"; // si existe
-import { syncUserWithBackend } from "@/lib/api/user-sync";
-import { syncCareer, syncCommissions, syncCouses } from "@/lib/api/core";
+// import { syncPurchases, syncWallet } from "@/lib/api/tienda";
+// import { syncEvents } from "@/lib/api/calendar";
+// import { syncUserWithBackend } from "@/lib/api/user-sync";
+// import { syncCareer, syncCommissions, syncCouses } from "@/lib/api/core";
 
 export default function BackgroundSync() {
   useEffect(() => {
     const runSync = async () => {
-      // Ejecuta todo en paralelo → no bloquea la UI
       try {
-        console.log("🔄 Background sync iniciado...");
-
         await Promise.allSettled([
-          //syncCareer(),
-          //syncUserWithBackend(),
-          //syncWallet(),
-          //syncPurchases(),
-          //syncEvents(),
-          //syncCouses(),
-          //syncCommissions(),
+          // syncCareer(),
+          // syncUserWithBackend(),
+          // syncWallet(),
+          // syncPurchases(),
+          // syncEvents(),
+          // syncCouses(),
+          // syncCommissions(),
         ]);
-
-        console.log("✅ Background sync completado.");
       } catch (err) {
         console.warn("⚠️ Error en background sync:", err);
       }
     };
 
-    // Espera que la app esté libre para no afectar performance
     if ("requestIdleCallback" in window) {
       requestIdleCallback(() => runSync());
     } else {
@@ -37,5 +31,5 @@ export default function BackgroundSync() {
     }
   }, []);
 
-  return null; // No renderiza nada
+  return null;
 }
