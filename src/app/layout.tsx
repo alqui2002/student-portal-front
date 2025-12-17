@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "UADE Connect",
   description: "Portal del estudiante",
   icons: {
-    icon: "/iconuade.png",
+    icon: "/iconuade.png?v=2",
   },
 };
 
