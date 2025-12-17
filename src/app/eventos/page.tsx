@@ -113,17 +113,17 @@ function daysGrid(year: number, monthIndex: number) {
     });
   return cells;
 }
-
 const DINING_SLOTS: DiningSlot[] = [
   { label: "Desayuno", from: "07:00", to: "12:00" },
   { label: "Almuerzo", from: "12:00", to: "16:00" },
   { label: "Merienda", from: "16:00", to: "20:00" },
+  { label: "Cena", from: "20:00", to: "23:00" }, // ✅ NUEVO
 ];
-
 const MEAL_TIME_MAP: Record<string, string> = {
   DESAYUNO: "Desayuno",
   ALMUERZO: "Almuerzo",
   MERIENDA: "Merienda",
+  CENA: "Cena", // ✅ CLAVE
 };
 
 export default function EventosPage() {
