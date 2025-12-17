@@ -2,6 +2,14 @@ import { jwtDecode } from "jwt-decode";
 import { apiFetch } from "./client";
 
 const userId = getUserIdFromToken();
+const token = getJwtFromCookie();
+
+
+function getJwtFromCookie() {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/JWT=([^;]+)/);
+  return match ? match[1] : null;
+}
 
 function getUserIdFromToken(): string {
   if (typeof document === "undefined") return "";
@@ -26,5 +34,9 @@ export async function getEventsByUser() {
 export async function syncEvents() {
   return apiFetch(`/calendar/sync`, {
     method: "POST",
+  headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
   });
 }
