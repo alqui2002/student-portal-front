@@ -1,16 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { PanelLeft, Clock, SquareUser, MapPin } from "lucide-react";
-import {
-  getAcademicHistoryByUser,
-  getEnrollmentsByUser,
-} from "@/lib/api/enrollments";
-import {
-  getNotificationsByUser,
-  patchReadNotification,
-} from "@/lib/api/notifs";
-
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,78 +9,124 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Badge } from "@/components/ui/badge";
+import { PanelLeft, FunnelPlus, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  getAvailableCoursesByUserId,
+  enrollUserInCourseIdAndCommissionId,
+} from "@/lib/api/enrollments";
+import { AvailableCourse } from "@/lib/api/types";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Loader from "@/components/ui/loader";
 
-export default function MisCursosPage() {
-  const [semestreSeleccionado, setSemestreSeleccionado] = useState<string>("");
-  const [enrollments, setEnrollments] = useState<any[]>([]);
-  const [historicEnrollments, sethistoricEnrollments] = useState<any[]>([]);
+export default function InscripcionesPage() {
+  const [selectedCommissions, setSelectedCommissions] = useState<
+    Record<string, string>
+  >({});
+  const [availableCourses, setAvailableCourses] = useState<AvailableCourse[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
+  const [insConfirmada, setinsConfirmada] = useState(false);
+  const [selectedCourseFilter, setSelectedCourseFilter] =
+    useState<string>("todas");
+  const [filteredCourses, setFilteredCourses] = useState<AvailableCourse[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await getEnrollmentsByUser();
-        console.log(data);
-        const inProgress = (data as any[]).filter(
-          enrollment => enrollment.status === "in_progress"
-        );
-
-        setEnrollments(inProgress);
+        setLoading(true);
+        const data = await getAvailableCoursesByUserId();
+        const normalizedCourses = Array.isArray(data) ? data : [];
+        setAvailableCourses(normalizedCourses);
+        setFilteredCourses(normalizedCourses);
       } catch (err) {
-        console.error("❌ Error al traer inscripciones:", err);
+        console.error("❌ Error al traer datos del curso:", err);
       } finally {
         setLoading(false);
       }
     }
-
     fetchData();
   }, []);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const userId = 1;
-        const data = await getAcademicHistoryByUser();
-
-        sethistoricEnrollments(data as any[]);
-      } catch (err) {
-        console.error("❌ Error al traer inscripciones:", err);
-      }
+  const handleFilterChange = (value: string) => {
+    setSelectedCourseFilter(value);
+    if (value === "todas") {
+      setFilteredCourses(availableCourses);
+    } else {
+      const filtered = availableCourses.filter(
+        course => String(course.id) === value
+      );
+      setFilteredCourses(filtered);
     }
+  };
 
-    fetchData();
-  }, []);
-  if (loading) return <Loader message="Cargando tus cursos..." />;
+  const handleCursoClick = (courseId: string, commissionId: string) => {
+    setSelectedCommissions(prev => ({
+      ...prev,
+      [courseId]: prev[courseId] === commissionId ? "" : commissionId,
+    }));
+  };
 
-  const semestresUnicos = Array.from(
-    new Set(historicEnrollments.map(e => `${e.year}-${e.semester}`))
-  ).sort((a, b) => b.localeCompare(a));
+  const enrollInCourse = async () => {
+    try {
+      const selectedEntries = Object.entries(selectedCommissions).filter(
+        ([_, val]) => val
+      );
+      async function fetchData() {
+        try {
+          for (const [courseId, commissionId] of selectedEntries) {
+            await enrollUserInCourseIdAndCommissionId(
+              String(courseId),
+              String(commissionId)
+            );
+            console.log(
+              `✅ Inscripción creada: curso ${courseId}, comisión ${commissionId}`
+            );
+          }
+        } catch (err) {
+          console.error("❌ Error al traer datos del curso:", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+      fetchData();
+      setinsConfirmada(true);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error desconocido al inscribirse";
+      console.error("❌ Error al inscribirse:", err);
+      alert(`Error: ${message}`);
+    }
+  };
 
-  const historialFiltrado =
-    semestreSeleccionado && semestreSeleccionado !== "all"
-      ? historicEnrollments.filter(
-          h => `${h.year}-${h.semester}` === semestreSeleccionado
-        )
-      : historicEnrollments;
+  if (loading) return <Loader message="Cargando inscripciones..." />;
+
+  const totalSeleccionadas =
+    Object.values(selectedCommissions).filter(Boolean).length;
 
   return (
-    <main className=" w-full flex flex-col gap-8 bg-white">
-      <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center space-x-2 text-sm text-muted-foreground border-b h-[53px]">
-        <PanelLeft size={15}></PanelLeft>
-        <span className="text-muted-foreground">|</span>
-
+    <main className="w-full flex flex-col gap-8 bg-white">
+      {/* === Breadcrumb === */}
+      <div className="pt-9.5 pb-9.5 pl-8 flex gap-4 items-center border-b h-[53px] text-sm text-muted-foreground">
+        <PanelLeft size={15} />
+        <span>|</span>
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -98,161 +134,200 @@ export default function MisCursosPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Mis Cursos</BreadcrumbPage>
+              <BreadcrumbPage>Inscripciones</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="pl-8 pr-8">
-        <section>
-          <h1 className="text-2xl font-medium">Cursos Actuales</h1>
 
-          <div className="pt-8 pl-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {enrollments.map(enrollment => (
-              <Link
-                href={{
-                  pathname: `/misCursos/${enrollment.course.id}`,
-                  query: { commissionId: enrollment.commission.id },
+      <div className="pl-8 pr-8">
+        <h1 className="text-2xl font-medium pb-3">Inscripción Materias</h1>
+        <span className="text-sm text-[#737373]">
+          Selecciona las materias y cursos para el período
+        </span>
+
+        <div className="grid grid-cols-3 gap-5 pt-5">
+          <div>
+            <div className="border rounded-xl p-4">
+              <div className="flex flex-row gap-2 items-center p-2">
+                <FunnelPlus size={16} />
+                <span className="font-bold">Filtros</span>
+              </div>
+
+              <div className="flex flex-col pr-3">
+                <span className="text-sm p-2">Materias</span>
+                <Select
+                  value={selectedCourseFilter}
+                  onValueChange={handleFilterChange}
+                >
+                  <SelectTrigger className="w-full shadow-none text-sm text-black">
+                    <SelectValue placeholder="Seleccionar materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas las materias</SelectItem>
+                    {availableCourses.length > 0 ? (
+                      availableCourses.map(course => (
+                        <SelectItem key={course.id} value={String(course.id)}>
+                          {course.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        No hay materias disponibles
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="border rounded-xl p-5 mt-5">
+              <span className="font-bold">Resumen de inscripción</span>
+              <div className="flex justify-between mt-6">
+                <span className="text-sm font-light">
+                  Materias seleccionadas
+                </span>
+                <span className="text-sm font-light">{totalSeleccionadas}</span>
+              </div>
+              {/* <div className="flex justify-between mt-6">
+                <span className="text-sm font-light">Total compra</span>
+                <span className="text-sm font-light">
+                  {totalSeleccionadas > 0
+                    ? `${totalSeleccionadas * 320000}$`
+                    : "-"}
+                </span>
+              </div> */}
+              <button
+                disabled={totalSeleccionadas === 0}
+                className="text-base font-light text-white bg-[#6F97F0] w-full mt-5 p-2 rounded-sm disabled:opacity-50"
+                onClick={() => {
+                  setinsConfirmada(true);
+                  enrollInCourse();
+                  console.log(selectedCommissions);
                 }}
-                key={enrollment.course.id}
               >
-                <div className="cursor-pointer border rounded-xl bg-white space-y-1 hover:shadow-md transition-shadow duration-300">
-                  <div className="flex flex-row items-center p-4 pr-6 rounded-t-xl justify-between bg-[#6F97F0]">
-                    <h3 className="font-medium text-base">
-                      {enrollment.course.name}
-                    </h3>
-                    <Badge variant="secondary" className="font-light">
-                      En curso
+                Confirmar inscripción
+              </button>
+            </div>
+          </div>
+
+          <div className="border rounded-xl ml-4 col-span-2">
+            <div className="p-8 pb-2 border-b">
+              <h2 className="text-lg font-light">Materias Disponibles</h2>
+              <h3 className="text-sm font-light mt-3 pb-5">
+                Selecciona materias y turnos deseados
+              </h3>
+            </div>
+
+            {filteredCourses.map(curso => {
+              const commissions = curso.commissions ?? [];
+              const hasOpenCommission = commissions.some(
+                com => com.availableSpots > 0
+              );
+              const courseKey = String(curso.id);
+
+              return (
+                <div
+                  key={curso.id}
+                  className={`border-b ${
+                    hasOpenCommission
+                      ? "cursor-pointer"
+                      : "opacity-40 pointer-events-none"
+                  }`}
+                >
+                  <div className="flex flex-row justify-between pl-8 pr-8 pt-8 pb-0">
+                    <span className="text-base font-light">{curso.name}</span>
+                    <Badge variant="secondary">
+                      {hasOpenCommission ? "Disponible" : "Sin cupos"}
                     </Badge>
                   </div>
-                  <div className="p-4 gap-4 pl-6">
-                    <div className="flex flex-row gap-5 items-center pb-5">
-                      <Clock size={20} color="#757575" />
-                      <span>
-                        {enrollment.commission.days}
-                        {"   "}
-                        {enrollment.commission.startTime} -{" "}
-                        {enrollment.commission.endTime}
-                      </span>
-                    </div>
-                    <div className="flex flex-row gap-5 items-center pb-5">
-                      <SquareUser size={20} color="#757575" />
-                      <span>{enrollment.commission.professorName} </span>
-                    </div>
-                    <div className="flex flex-row gap-5 items-center">
-                      <MapPin size={20} color="#757575" />
-                      Aula {enrollment.commission.classroom}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
 
-        <section className="pt-9">
-          <div className="flex flex-row justify-between items-center pb-6">
-            <h1 className="text-2xl font-medium">Historial Académico</h1>
-            <Select
-              value={semestreSeleccionado}
-              onValueChange={setSemestreSeleccionado}
-            >
-              <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Todos los semestres" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">Todos los semestres</SelectItem>
-                </SelectGroup>
+                  <span className="font-light text-sm p-8 pt-3 block">
+                    Código: {curso.code}{" "}
+                    {curso.correlatives?.length
+                      ? `- Correlativas: ${curso.correlatives.map(c => c.name).join(", ")}`
+                      : "- Correlativas: Ninguna"}
+                  </span>
 
-                {Object.entries(
-                  historicEnrollments.reduce(
-                    (acc: Record<string, string[]>, h) => {
-                      if (!acc[h.year]) acc[h.year] = [];
-                      if (!acc[h.year].includes(h.semester))
-                        acc[h.year].push(h.semester);
-                      return acc;
-                    },
-                    {}
-                  )
-                )
-                  .sort(([a], [b]) => b.localeCompare(a))
-                  .map(([year, semestres]) => (
-                    <SelectGroup key={year}>
-                      <SelectLabel>{year}</SelectLabel>
-                      {semestres.map(sem => (
-                        <SelectItem
-                          key={`${year}-${sem}`}
-                          value={`${year}-${sem}`}
-                        >
-                          {sem === "I"
-                            ? "1er semestre"
-                            : sem === "II"
-                              ? "2do semestre"
-                              : sem === "Verano"
-                                ? "Verano"
-                                : sem}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="overflow-auto pl-4">
-            <table className="w-full border-collapse text-sm text-left rounded-md overflow-hidden pr-6">
-              <thead className="bg-gray-100">
-                <tr className="border-l border-r border-b font-medium">
-                  <th className="p-2 font-normal text-[#595959]">Materia</th>
-                  <th className="p-2 font-normal text-[#595959]">Semestre</th>
-                  <th className="p-2 font-normal text-[#595959]">Profesor</th>
-                  <th className="p-2 font-normal text-[#595959]">
-                    Clasificación
-                  </th>
-                  <th className="p-2 font-normal text-[#595959]">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historialFiltrado.map(enrollment => (
-                  <tr
-                    key={enrollment.id}
-                    className="border-l border-r border-b"
-                  >
-                    <td className="p-2">{enrollment.course.name}</td>
-                    <td className="p-2">
-                      {enrollment.year}-{enrollment.semester}
-                    </td>
-                    <td className="p-2">
-                      {enrollment.commission.professorName}
-                    </td>
-                    <td className="p-2">{enrollment.finalNote}</td>
-                    <td className="p-2">
-                      <Badge
-                        variant="secondary"
-                        className={`font-light ${
-                          enrollment.status !== "in_progress" &&
-                          enrollment.status !== "done" &&
-                          enrollment.status !== "passed"
-                            ? "border border-red-500 text-red-700"
-                            : ""
-                        }`}
+                  {commissions.length > 0 && (
+                    <div className="items-center gap-4 ml-6 mr-6 p-4 pl-8 mb-5">
+                      <RadioGroup
+                        value={selectedCommissions[courseKey] || ""}
+                        onValueChange={val => handleCursoClick(courseKey, val)}
                       >
-                        {enrollment.status === "in_progress"
-                          ? "En curso"
-                          : enrollment.status === "passed"
-                            ? "Aprobado"
-                            : enrollment.status === "failed"
-                              ? "Desaprobado"
-                              : "none"}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {commissions.map(com => {
+                          const isFull = com.availableSpots === 0;
+                          const commissionId = String(com.id);
+                          const isSelected =
+                            selectedCommissions[courseKey] === commissionId;
+
+                          return (
+                            <div
+                              key={com.id}
+                              onClick={e => {
+                                if (isFull) return;
+                                e.stopPropagation();
+                                handleCursoClick(courseKey, commissionId);
+                              }}
+                              className={`border rounded-xl pl-3 pr-3 mb-2 ${
+                                isSelected ? "border-[#6F97F0]" : ""
+                              } ${isFull ? "opacity-40 pointer-events-none" : "cursor-pointer"}`}
+                            >
+                              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 p-2 pl-4">
+                                <RadioGroupItem
+                                  value={commissionId}
+                                  disabled={isFull}
+                                  className="mt-1"
+                                />
+
+                                <div className="flex flex-col text-sm gap-1">
+                                  <span className="font-base">
+                                    {com.days} ({com.startTime} - {com.endTime})
+                                  </span>
+                                  <span className="text-[#737373]">
+                                    Clase: {com.classRoom}
+                                  </span>
+                                  <span className="text-[#737373]">
+                                    Modalidad: {com.mode}
+                                  </span>
+                                </div>
+
+                                <div className="text-sm text-right text-[#737373] pr-6">
+                                  {com.availableSpots}/{com.totalSpots} cupos
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </section>
+        </div>
+
+        <AlertDialog open={insConfirmada} onOpenChange={setinsConfirmada}>
+          <AlertDialogContent className="text-center w-[500px]">
+            <AlertDialogHeader>
+              <div className="justify-start">
+                <Link
+                  href={"/misCursos"}
+                  onClick={() => setinsConfirmada(false)}
+                >
+                  <X color={"black"} />
+                </Link>
+              </div>
+              <AlertDialogTitle>Inscripción confirmada</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tus inscripciones fueron confirmadas. Verás el resumen en la
+                tienda.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="justify-center"></AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </main>
   );
