@@ -117,6 +117,7 @@ const NotificationItem: React.FC<{
   if (type === "exam") {
     context = "Mis Cursos";
     link = buildExamLinkFromEnrollments(notification, enrollments);
+    title = `📝 ${notification.title}`;
   }
 
   if (type === "sancion") {
